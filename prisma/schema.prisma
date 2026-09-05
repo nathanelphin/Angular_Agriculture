@@ -1,0 +1,38 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model NewsletterSignup {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  createdAt DateTime @default(now())
+}
+
+model Order {
+  id              String   @id @default(cuid())
+  orderNumber     String   @unique
+  customerName    String
+  email           String
+  phone           String
+  address         String
+  province        String
+  district        String?
+  instructions    String?
+  deliveryMethod  String
+  paymentMethod   String
+  items           String // JSON-encoded OrderItem[]
+  subtotal        Float
+  shipping        Float
+  discount        Float
+  total           Float
+  farmersSupported Int
+  createdAt       DateTime @default(now())
+}
