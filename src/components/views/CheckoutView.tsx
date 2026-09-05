@@ -25,6 +25,7 @@ import { useLang } from '@/lib/stores/lang';
 import { useMounted } from '@/lib/hooks';
 import { provinces } from '@/lib/data/provinces';
 import { findPromo } from '@/components/checkout/totals';
+import { shelfFor } from '@/lib/stock';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import {
@@ -180,6 +181,7 @@ export default function CheckoutView({ view }: ViewProps) {
     qty: item.qty,
     unitPrice,
     image: product.image,
+    shelf: shelfFor(product, item.size),
   }));
 
   // Calm scroll to top when the shopper advances between steps.

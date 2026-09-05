@@ -14,6 +14,8 @@ export interface OrderSummaryItem {
   qty: number;
   unitPrice: number;
   image: string;
+  /** Units on the shelf behind this line — enables the stock whisper. */
+  shelf?: number;
 }
 
 interface OrderSummaryProps {
@@ -65,6 +67,26 @@ export function OrderSummary({
               <p className="mt-1 text-[11px] uppercase tracking-[0.18em] text-stone">
                 {item.size} · ×{item.qty}
               </p>
+              {typeof item.shelf === 'number' && item.shelf > 0 && (
+                <p
+                  className={cn(
+                    'mt-1 text-[10px] font-semibold uppercase tracking-[0.14em]',
+                    item.qty > item.shelf
+                      ? 'text-terracotta'
+                      : item.shelf - item.qty <= 8
+                        ? 'text-moss'
+                        : 'text-stone/80',
+                  )}
+                >
+                  {item.qty > item.shelf
+                    ? t('cart.shelf.exceeded', { n: item.shelf })
+                    : item.shelf - item.qty === 0
+                      ? t('cart.shelf.full')
+                      : item.shelf - item.qty <= 8
+                        ? t('cart.shelf.after', { n: item.shelf - item.qty })
+                        : t('cart.shelf.units', { n: item.shelf })}
+                </p>
+              )}
             </div>
             <p className="text-sm font-semibold tabular-nums text-charcoal">
               {formatPrice(item.unitPrice * item.qty)}

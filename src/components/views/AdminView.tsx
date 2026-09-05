@@ -23,6 +23,7 @@ import { useRouterStore } from '@/lib/stores/router';
 import { formatDateShort } from '@/lib/format-date';
 import { orderStageIndex } from '@/components/checkout/OrderTimeline';
 import { Reveal } from '@/components/shared/Reveal';
+import { StageMeter } from '@/components/shared/StageMeter';
 import { RatingStars } from '@/components/shared/RatingStars';
 import { formatPrice } from '@/components/shared/ProductCard';
 import { cn } from '@/lib/utils';
@@ -251,7 +252,6 @@ export default function AdminView({ view }: ViewProps) {
                   <tbody>
                     {orders.map((o) => {
                       const stage = orderStageIndex(o.createdAt);
-                      const delivered = stage === 3;
                       return (
                         <tr
                           key={o.id}
@@ -277,24 +277,7 @@ export default function AdminView({ view }: ViewProps) {
                             </span>
                           </td>
                           <td className="hidden py-3 pr-3 align-top md:table-cell">
-                            <span
-                              className={cn(
-                                'inline-flex items-center gap-1.5 border px-2 py-1 text-[8px] font-bold uppercase tracking-[0.16em]',
-                                delivered
-                                  ? 'border-gold/60 bg-gold/10 text-[#8a6d10]'
-                                  : 'border-forest/25 bg-forest/5 text-forest',
-                              )}
-                            >
-                              {delivered ? (
-                                <span className="h-1.5 w-1.5 rounded-full bg-gold" aria-hidden="true" />
-                              ) : (
-                                <span className="relative flex h-1.5 w-1.5" aria-hidden="true">
-                                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-forest opacity-60" />
-                                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-forest" />
-                                </span>
-                              )}
-                              {stageLabel(stage)}
-                            </span>
+                            <StageMeter stage={stage} label={stageLabel(stage)} />
                           </td>
                           <td className="py-3 pr-3 text-right align-top text-xs tabular-nums text-stone">
                             {o.itemsCount}

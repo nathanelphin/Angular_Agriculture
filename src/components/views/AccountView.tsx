@@ -1,14 +1,17 @@
 'use client';
 
-import { PackageOpen, Truck } from 'lucide-react';
+import { PackageOpen, RotateCcw, Truck } from 'lucide-react';
+import { toast } from 'sonner';
 import type { ViewProps } from '@/lib/types';
 import { useOrdersStore } from '@/lib/stores/orders';
+import { useCartStore } from '@/lib/stores/cart';
 import { useRouterStore } from '@/lib/stores/router';
 import { useLang } from '@/lib/stores/lang';
 import { useMounted } from '@/lib/hooks';
 import { formatDateShort } from '@/lib/format-date';
 import { Reveal } from '@/components/shared/Reveal';
 import { EmptyState } from '@/components/shared/EmptyState';
+import { StageMeter } from '@/components/shared/StageMeter';
 import { formatPrice } from '@/components/shared/ProductCard';
 import { orderStageIndex } from '@/components/checkout/OrderTimeline';
 import { cn } from '@/lib/utils';
@@ -18,6 +21,7 @@ export default function AccountView({ view }: ViewProps) {
   const { t, lang, setLang } = useLang();
   const navigate = useRouterStore((s) => s.navigate);
   const orders = useOrdersStore((s) => s.orders);
+  const addToCart = useCartStore((s) => s.add);
   const mounted = useMounted();
 
   const dateLabel = (iso: string) => formatDateShort(iso, lang);
@@ -25,6 +29,14 @@ export default function AccountView({ view }: ViewProps) {
   const stageLabel = (iso: string) => {
     const labels = [t('track.confirmed'), t('track.packing'), t('track.transit'), t('track.delivered')];
     return labels[orderStageIndex(iso)] ?? labels[0];
+  };
+
+  // Return a whole past order to the basket — one tap, shelf-aware quantities.
+  const orderAgain = (orderId: string) => {
+    const order = orders.find((o) => o.id === orderId);
+    if (!order || order.items.length === 0) return;
+    order.items.forEach((item) => addToCart(item.productId, item.size, item.qty));
+    toast.success(t('account.addAgainDone', { n: order.items.length }));
   };
 
   return (
@@ -126,29 +138,27 @@ export default function AccountView({ view }: ViewProps) {
                         <p className="mt-1 text-xs text-stone">
                           {dateLabel(order.createdAt)} · {order.items.length} {t('cart.items')}
                         </p>
-                        <p
-                          className={cn(
-                            'mt-2 inline-flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-[0.2em]',
-                            orderStageIndex(order.createdAt) === 3 ? 'text-gold' : 'text-forest',
-                          )}
-                        >
-                          <span
-                            aria-hidden="true"
-                            className={cn(
-                              'h-1.5 w-1.5 rounded-full',
-                              orderStageIndex(order.createdAt) === 3
-                                ? 'bg-gold'
-                                : 'animate-pulse bg-forest',
-                            )}
+                        <p className="mt-2 flex items-center gap-2.5">
+                          <StageMeter
+                            stage={orderStageIndex(order.createdAt)}
+                            label={stageLabel(order.createdAt)}
                           />
-                          {t('account.status')}: {stageLabel(order.createdAt)}
                         </p>
                       </div>
                       <div className="flex items-center justify-between gap-4 sm:justify-end sm:gap-6">
                         <p className="font-semibold tabular-nums text-charcoal">
                           {formatPrice(order.total)}
                         </p>
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <button
+                            type="button"
+                            className="btn-outline h-10 px-4 text-[10px]"
+                            aria-label={`${t('account.addAgain')}: ${order.orderNumber}`}
+                            onClick={() => orderAgain(order.id)}
+                          >
+                            <RotateCcw className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden="true" />
+                            {t('account.addAgain')}
+                          </button>
                           <button
                             type="button"
                             className="btn-outline h-10 px-4 text-[10px]"

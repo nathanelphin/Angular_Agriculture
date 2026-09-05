@@ -40,3 +40,15 @@ export function isSizeLow(product: Product, size: ProductSize): boolean {
   const n = sizeStock(product, size);
   return n > 0 && n <= SIZE_LOW_THRESHOLD;
 }
+
+/**
+ * Units on the shelf behind a cart line. Cart lines store a size *label*;
+ * when the label matches a size the per-size stock applies, otherwise the
+ * product-level shelf is the truth (covers size-less products and legacy
+ * saved lines whose size names have since changed).
+ */
+export function shelfFor(product: Product, sizeLabel: string): number {
+  const size = product.sizes.find((s) => s.label === sizeLabel);
+  if (size) return sizeStock(product, size);
+  return Math.max(0, product.stock);
+}

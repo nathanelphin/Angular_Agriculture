@@ -376,3 +376,35 @@ Stage Summary:
 - SOVANN FARM v1.6: stock is now a per-size story — shoppers see which tins are scarce before they commit, can't over-order a size that isn't there, and sold-out sizes wear a quiet hatch instead of an error; the Storekeeper's Desk reads order status at a glance and ships the whole order book to CSV in one click.
 - Known notes: derived per-size stock is deterministic but fictional (demo data); first-size sold-out edge case is not guarded on card quick-adds (no dataset exercises it — derivation only yields 0 when a product is fully sold out, which cards already disable); CSV export is client-side from the summary payload (caps at the API's take:20).
 - Ideas for next cycle: order rows on the desk could carry a mini stage progress (4 dots) instead of a text chip; per-size stock could feed back into the cart line items (warn when qty exceeds shelf at checkout time); simple passphrase gate for the desk if it graduates beyond demo; KH native proofread pass on all new strings.
+
+---
+Task ID: 12 (Feature Round 8 — Shelf-Aware Basket + Journey Meter, v1.7)
+Agent: Z.ai Code (main)
+Task: Assess status via agent-browser QA, then deepen styling details and add new commerce features (v1.7)
+
+Work Log:
+- STATUS ASSESSMENT: read worklog (v1.6 handoff), dev server alive. agent-browser sweep: home/shop/product/cart/admin desktop 1440 + mobile 390, EN+KH — all healthy, console clean (benign empty ✗ noise only), no bugs found → declared STABLE and proceeded to feature work drawn from the worklog's own "ideas for next cycle" (per-size stock into cart lines, journey meter on desk rows).
+
+FEATURES (mandatory #2):
+- SHELF-AWARE BASKET ("the basket never promises more than the shelf holds"):
+  * New `shelfFor(product, sizeLabel)` in src/lib/stock.ts — resolves a cart line's shelf from its size label (per-size stock when the label matches, product-level otherwise; covers size-less products and legacy saved lines).
+  * CartView line items now carry a shelf gauge (thin hairline bar, w-64 max, animated width) + a bilingual whisper line (aria-live=polite) with four honest states: normal "24 on this shelf" (stone, moss/50 bar) → near-shelf "Leaves 2 on the shelf after checkout" (moss, moss bar, when remaining ≤ 8) → full "That's the whole shelf — every unit is in your basket." (gold-dark, gold bar, qty = shelf) → over-shelf "Only 6 left on this shelf" (terracotta + pulse dot) with an inline "Trim basket to shelf" action that clamps qty to the shelf.
+  * QuantityStepper in cart now takes max = shelf (the + button disables at the shelf — verified: 1kg pepper shelf 6 blocks at 6).
+  * OrderSummary (checkout) gained optional `shelf` per line and renders the same whispers (terracotta over-shelf / gold full / moss leaves-n / stone units); CheckoutView passes shelfFor() into summaryItems. Verified live: gold full-state on pepper 1kg ×6 and moss "LEAVES 2 ON THE SHELF AFTER CHECKOUT" on honey ×9.
+- REORDER — "ADD AGAIN" on account order cards: one tap returns a whole past order to the basket via cart.add per line (RotateCcw icon, btn-outline), success toast "n harvests are back in your basket." Verified end-to-end: ADD AGAIN on SF-2026-08237 → toast, badge 15→30, and the reordered honey (19 > 11 shelf) instantly showed the terracotta over-shelf warning + trim action in the cart — reorder and shelf-truth interplay working as designed.
+- JOURNEY METER — new shared `StageMeter` component (src/components/shared/StageMeter.tsx): a miniature 4-dot fulfilment meter with hairline connectors; past stages filled forest, current stage pings, delivered = full gold chain with gold-dark label; sr-only "stage n of 4". Deployed in TWO surfaces: AdminView Recent Orders rows (replacing the text chip — live orders show forest ping chain + "CONFIRMED", old orders gold chain + "DELIVERED"; verified with a fresh API-placed order SF-2026-01503) and AccountView order cards (replacing the plain dot + text).
+- i18n: 9 new keys EN+KH (cart.shelf.units/after/full/exceeded/trim, account.addAgain/addAgainDone). Khmer verified in-browser on cart ("នៅលើធ្នើរនេះមានតែ 11 ទៀតប៉ុណ្ណោះ", "កាត់រទេះចុះត្រឹមធ្នើរ", gold full-line), admin (journey labels) and account ("បន្ថែមម្តងទៀត").
+
+STYLING DETAILS (mandatory #1):
+- The shelf gauge is a quiet editorial instrument — 4px bar on charcoal/8 ground, 700ms ease-out width transitions, colour climbing stone → moss → gold to mirror scarcity, pulse-dot + underline-action pattern reused from v1.6 size chips so the language stays coherent.
+- StageMeter keeps the desk's 8px uppercase tracked labels; hairline connectors match the editorial hairline rows; whitespace-nowrap so rows never jump.
+- Over-shelf lines keep the row rhythm (whisper + action on one wrapped line) — no layout shift when the warning appears.
+
+BUGS FOUND & FIXED: none new. (One self-caught TS slip during development — missing `shelf` in CartView's map destructure — fixed before verification.)
+
+Verification: `bunx tsc --noEmit` → 0 errors in src/ (pre-existing examples/skills noise only); `bun run lint` clean; agent-browser rounds desktop 1440 + mobile 390 in EN + KH: cart four shelf states + trim interaction, stepper max clamp, checkout summary whispers, admin live-vs-delivered journey meters, account meter + ADD AGAIN toast + badge, KH cart/admin/account — all green; console 0 errors; demo state reset at handoff (lang EN, original cart restored [pepper 100g ×1, honey 250g ×2], Stage Test order deleted from SQLite → 6 orders / $344 restored).
+
+Stage Summary:
+- SOVANN FARM v1.7: stock storytelling now follows the harvest all the way home — the cart and checkout speak in shelves (whispers, gauges, trim-to-shelf), past orders return to the basket in one tap, and every order surface (desk + account) reads through the same little journey meter.
+- Known notes: over-shelf lines are reachable only by hand (localStorage/seeded reorder) since product UI clamps at the shelf — the warning + trim exists precisely for these paths; shelf numbers remain deterministic demo derivations; checkout does not hard-block over-shelf lines (the cart trim is the enforcement point — a deliberate prototype choice).
+- Ideas for next cycle: hard-guard the final checkout step against over-shelf lines (clamp into the order payload server-side too); desk rows could hyperlink the StageMeter to #/track directly; wishlist → "add all to basket" bulk action; KH native proofread pass on the new shelf strings; simple passphrase gate for the desk if it graduates beyond demo.

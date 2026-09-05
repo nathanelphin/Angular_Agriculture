@@ -248,6 +248,12 @@ export const translations: Record<Lang, Record<string, string>> = {
     'cart.items': 'items',
     'cart.pairsWith': 'Complete Your Harvest',
 
+    'cart.shelf.units': '{n} on this shelf',
+    'cart.shelf.after': 'Leaves {n} on the shelf after checkout',
+    'cart.shelf.full': 'That’s the whole shelf — every unit is in your basket.',
+    'cart.shelf.exceeded': 'Only {n} left on this shelf',
+    'cart.shelf.trim': 'Trim basket to shelf',
+
     'checkout.title': 'Checkout',
     'checkout.step.information': 'Information',
     'checkout.step.delivery': 'Delivery',
@@ -307,6 +313,8 @@ export const translations: Record<Lang, Record<string, string>> = {
     'account.demo': 'Prototype account — data lives only in your browser.',
     'account.viewOrder': 'View order',
     'account.status': 'Status',
+    'account.addAgain': 'Add Again',
+    'account.addAgainDone': '{n} harvests are back in your basket.',
 
     'footer.allProducts': 'All Products',
     'footer.aboutUs': 'About Us',
@@ -665,6 +673,12 @@ export const translations: Record<Lang, Record<string, string>> = {
     'cart.items': 'ធាតុ',
     'cart.pairsWith': 'បំពេញផលដំណំរបស់អ្នក',
 
+    'cart.shelf.units': 'មាន {n} នៅលើធ្នើរនេះ',
+    'cart.shelf.after': 'បន្ទាប់ពីការបញ្ជាទិញ ធ្នើរនៅសល់ {n} ទៀត',
+    'cart.shelf.full': 'នេះជាធ្នើរទាំងមូល — គ្រប់ចំនួនស្ថិតក្នុងរទេះរបស់អ្នក។',
+    'cart.shelf.exceeded': 'នៅលើធ្នើរនេះមានតែ {n} ទៀតប៉ុណ្ណោះ',
+    'cart.shelf.trim': 'កាត់រទេះចុះត្រឹមធ្នើរ',
+
     'checkout.title': 'ការទូទាត់',
     'checkout.step.information': 'ព័ត៌មាន',
     'checkout.step.delivery': 'ការដឹកជញ្ជូន',
@@ -724,6 +738,8 @@ export const translations: Record<Lang, Record<string, string>> = {
     'account.demo': 'គណនីគំរូ — ទិន្នន័យមានតែក្នុងកម្មវិធីរុករករបស់អ្នក។',
     'account.viewOrder': 'មើលការបញ្ជាទិញ',
     'account.status': 'ស្ថានភាព',
+    'account.addAgain': 'បន្ថែមម្តងទៀត',
+    'account.addAgainDone': 'ផលដំណំចំនួន {n} ត្រឡប់មករទេះរបស់អ្នកវិញហើយ។',
 
     'footer.allProducts': 'ផលិតផលទាំងអស់',
     'footer.aboutUs': 'អំពីយើង',

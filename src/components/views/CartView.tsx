@@ -16,6 +16,7 @@ import { EmptyState } from '@/components/shared/EmptyState';
 import { QuantityStepper } from '@/components/shared/QuantityStepper';
 import { PromoCodeInput } from '@/components/shared/PromoCodeInput';
 import { formatPrice } from '@/components/shared/ProductCard';
+import { shelfFor } from '@/lib/stock';
 import {
   FREE_SHIPPING_THRESHOLD,
   findPromo,
@@ -37,7 +38,8 @@ export default function CartView({ view }: ViewProps) {
 
   const tt = (en: string, kh: string) => (lang === 'kh' ? kh : en);
 
-  // Join cart lines (productId + size + qty) with the product catalogue.
+  // Join cart lines (productId + size + qty) with the product catalogue —
+  // and with the shelf behind each line, so the basket can talk about stock.
   const lines = useMemo(
     () =>
       items.map((item) => {
@@ -45,7 +47,8 @@ export default function CartView({ view }: ViewProps) {
         const unitPrice = product
           ? (product.sizes.find((s) => s.label === item.size)?.price ?? product.price)
           : 0;
-        return { item, product, unitPrice };
+        const shelf = product ? shelfFor(product, item.size) : 0;
+        return { item, product, unitPrice, shelf };
       }),
     [items, products],
   );
@@ -153,7 +156,7 @@ export default function CartView({ view }: ViewProps) {
               </ul>
             ) : (
               <ul>
-                {lines.map(({ item, product, unitPrice }) => {
+                {lines.map(({ item, product, unitPrice, shelf }) => {
                   const key = `${item.productId}-${item.size}`;
                   if (!product) {
                     // Catalogue loaded but this saved product no longer exists.
@@ -178,6 +181,12 @@ export default function CartView({ view }: ViewProps) {
                   }
                   const name =
                     lang === 'kh' && product.nameKh ? product.nameKh : product.name;
+                  // Shelf truth for this line — the basket never promises more
+                  // units than the shelf actually holds.
+                  const overShelf = shelf > 0 && item.qty > shelf;
+                  const shelfFull = !overShelf && shelf > 0 && item.qty >= shelf;
+                  const afterShelf = shelf - item.qty;
+                  const gaugePct = Math.min(100, Math.round((item.qty / shelf) * 100));
                   return (
                     <li key={key} className="border-b border-charcoal/10 py-6">
                       <div className="flex gap-5">
@@ -209,8 +218,64 @@ export default function CartView({ view }: ViewProps) {
                             <QuantityStepper
                               className="mt-4"
                               value={item.qty}
+                              max={shelf > 0 ? shelf : undefined}
                               onChange={(qty) => setQty(item.productId, item.size, qty)}
                             />
+
+                            {/* Shelf truth — gauge + whisper line */}
+                            {shelf > 0 && (
+                              <div className="mt-3 max-w-64" aria-live="polite">
+                                {overShelf ? (
+                                  <p className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[10px] font-bold uppercase tracking-[0.16em] text-terracotta">
+                                    <span
+                                      className="relative flex h-1.5 w-1.5"
+                                      aria-hidden="true"
+                                    >
+                                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-terracotta opacity-60" />
+                                      <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-terracotta" />
+                                    </span>
+                                    {t('cart.shelf.exceeded', { n: shelf })}
+                                    <button
+                                      type="button"
+                                      onClick={() => setQty(item.productId, item.size, shelf)}
+                                      className="cursor-pointer underline decoration-terracotta/50 underline-offset-4 transition-colors hover:decoration-terracotta focus-visible:outline-2 focus-visible:outline-gold"
+                                    >
+                                      {t('cart.shelf.trim')}
+                                    </button>
+                                  </p>
+                                ) : (
+                                  <>
+                                    <p
+                                      className={
+                                        shelfFull
+                                          ? 'text-[10px] font-semibold uppercase tracking-[0.16em] text-[#8a6d10]'
+                                          : afterShelf <= 8
+                                            ? 'text-[10px] font-semibold uppercase tracking-[0.16em] text-moss'
+                                            : 'text-[10px] uppercase tracking-[0.16em] text-stone'
+                                      }
+                                    >
+                                      {shelfFull
+                                        ? t('cart.shelf.full')
+                                        : afterShelf <= 8
+                                          ? t('cart.shelf.after', { n: afterShelf })
+                                          : t('cart.shelf.units', { n: shelf })}
+                                    </p>
+                                    <div className="mt-2 h-1 w-full overflow-hidden bg-charcoal/8">
+                                      <div
+                                        className={
+                                          shelfFull
+                                            ? 'h-full bg-gold transition-[width] duration-700 ease-out'
+                                            : afterShelf <= 8
+                                              ? 'h-full bg-moss transition-[width] duration-700 ease-out'
+                                              : 'h-full bg-moss/50 transition-[width] duration-700 ease-out'
+                                        }
+                                        style={{ width: `${gaugePct}%` }}
+                                      />
+                                    </div>
+                                  </>
+                                )}
+                              </div>
+                            )}
                           </div>
                           <div className="flex items-center justify-between gap-5 sm:flex-col sm:items-end sm:justify-start">
                             <p className="font-semibold tabular-nums text-charcoal">
