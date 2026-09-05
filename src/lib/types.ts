@@ -127,6 +127,7 @@ export type View =
   | { name: 'cart' }
   | { name: 'checkout' }
   | { name: 'confirmation'; orderId: string }
+  | { name: 'track'; orderNumber: string }
   | { name: 'wishlist' }
   | { name: 'account' };
 

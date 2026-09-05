@@ -9,6 +9,7 @@ import { Footer } from '@/components/layout/Footer';
 import { SearchOverlay } from '@/components/layout/SearchOverlay';
 import { MobileMenu } from '@/components/layout/MobileMenu';
 import { BackToTop } from '@/components/shared/BackToTop';
+import { CompareTray } from '@/components/shared/CompareTray';
 import { Toaster } from '@/components/ui/sonner';
 
 const BRAND = 'Sovann Farm';
@@ -42,6 +43,8 @@ function baseTitle(view: View): string {
       return `Your Wishlist — ${BRAND}`;
     case 'account':
       return `Your Account — ${BRAND}`;
+    case 'track':
+      return `Track Your Order — ${BRAND}`;
   }
 }
 
@@ -88,6 +91,7 @@ export function SiteShell({ children }: { children: ReactNode }) {
       <SearchOverlay />
       <MobileMenu />
       <BackToTop />
+      <CompareTray />
       <Toaster position="top-center" richColors />
     </div>
   );

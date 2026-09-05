@@ -1,6 +1,6 @@
 'use client';
 
-import { PackageOpen } from 'lucide-react';
+import { PackageOpen, Truck } from 'lucide-react';
 import type { ViewProps } from '@/lib/types';
 import { useOrdersStore } from '@/lib/stores/orders';
 import { useRouterStore } from '@/lib/stores/router';
@@ -144,19 +144,32 @@ export default function AccountView({ view }: ViewProps) {
                           {t('account.status')}: {stageLabel(order.createdAt)}
                         </p>
                       </div>
-                      <div className="flex items-center justify-between gap-6 sm:justify-end">
+                      <div className="flex items-center justify-between gap-4 sm:justify-end sm:gap-6">
                         <p className="font-semibold tabular-nums text-charcoal">
                           {formatPrice(order.total)}
                         </p>
-                        <button
-                          type="button"
-                          className="btn-outline h-10 px-5 text-[10px]"
-                          onClick={() =>
-                            navigate({ name: 'confirmation', orderId: order.id })
-                          }
-                        >
-                          {t('account.viewOrder')}
-                        </button>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            className="btn-outline h-10 px-4 text-[10px]"
+                            aria-label={`${t('account.trackOrder')}: ${order.orderNumber}`}
+                            onClick={() =>
+                              navigate({ name: 'track', orderNumber: order.orderNumber })
+                            }
+                          >
+                            <Truck className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden="true" />
+                            {t('account.trackOrder')}
+                          </button>
+                          <button
+                            type="button"
+                            className="h-10 cursor-pointer px-2 text-[10px] font-bold uppercase tracking-[0.18em] text-stone underline decoration-charcoal/30 underline-offset-4 transition-colors hover:text-forest focus-visible:outline-2 focus-visible:outline-gold"
+                            onClick={() =>
+                              navigate({ name: 'confirmation', orderId: order.id })
+                            }
+                          >
+                            {t('account.viewOrder')}
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </Reveal>

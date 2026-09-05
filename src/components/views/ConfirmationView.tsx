@@ -121,6 +121,15 @@ export default function ConfirmationView({ view }: ViewProps) {
         <Reveal delay={250} className="mt-4">
           <div className="card-editorial p-6 md:p-8">
             <OrderTimeline etaLabel={order.eta} placedAt={order.createdAt} />
+            <div className="mt-6 text-center">
+              <button
+                type="button"
+                onClick={() => navigate({ name: 'track', orderNumber: order.orderNumber })}
+                className="cursor-pointer text-[10px] font-bold uppercase tracking-[0.22em] text-forest underline decoration-gold decoration-2 underline-offset-[6px] transition-colors hover:text-forest-deep focus-visible:outline-2 focus-visible:outline-gold"
+              >
+                {t('confirm.trackLink')}
+              </button>
+            </div>
           </div>
         </Reveal>
 

@@ -11,6 +11,8 @@ import { useRouterStore } from '@/lib/stores/router';
 import { useCartStore } from '@/lib/stores/cart';
 import { useWishlistStore } from '@/lib/stores/wishlist';
 import { useRecentStore } from '@/lib/stores/recent';
+import { useCompareStore } from '@/lib/stores/compare';
+import { useUIStore } from '@/lib/stores/ui';
 import { useMounted } from '@/lib/hooks';
 import { useSeo } from '@/lib/useSeo';
 import { getCategory } from '@/lib/data/categories';
@@ -70,9 +72,16 @@ export default function ProductView({ view }: ViewProps) {
   const [selectedSize, setSelectedSize] = useState('');
   const [qty, setQty] = useState(1);
   const [justAdded, setJustAdded] = useState(false);
+  // Sticky mobile buy bar — appears once the main buy box scrolls away.
+  const [showStickyBar, setShowStickyBar] = useState(false);
+  // The compare tray owns the bottom edge while active — yield to it.
+  const trayActive = useCompareStore((s) => s.ids.length > 0);
+  const setBottomBarActive = useUIStore((s) => s.setBottomBarActive);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Lens zoom — cursor-following magnification on fine-pointer devices.
   const lensWrapRef = useRef<HTMLDivElement>(null);
+  // Mobile sticky add-to-cart — appears once the main buy box scrolls away.
+  const buyBoxRef = useRef<HTMLDivElement>(null);
 
   // Selection state initialises from the loaded product; the keyed view wrapper remounts
   // this component on navigation, so no reset effect is required.
@@ -87,6 +96,26 @@ export default function ProductView({ view }: ViewProps) {
   useEffect(() => {
     if (product) recordRecent(product.slug);
   }, [product?.id, recordRecent]);
+
+  // Sticky mobile buy bar — watches the main actions block; the fixed bar
+  // slides in only while that block is above the viewport (mobile/tablet).
+  useEffect(() => {
+    const node = buyBoxRef.current;
+    if (!node || typeof IntersectionObserver === 'undefined') return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        const show = !entry.isIntersecting && entry.boundingClientRect.top < 0;
+        setShowStickyBar(show);
+        setBottomBarActive(show);
+      },
+      { rootMargin: '-72px 0px 0px 0px' },
+    );
+    observer.observe(node);
+    return () => {
+      observer.disconnect();
+      setBottomBarActive(false);
+    };
+  }, [product, setBottomBarActive]);
 
   // ── Gallery (product → farm → province) ─────────────────────────────────────
   const gallery = useMemo(() => {
@@ -389,13 +418,21 @@ export default function ProductView({ view }: ViewProps) {
                       aria-checked={active}
                       onClick={() => setSelectedSize(s.label)}
                       className={cn(
-                        'h-11 cursor-pointer border px-5 text-sm font-semibold transition-all duration-300 focus-visible:outline-2 focus-visible:outline-gold',
+                        'flex min-h-11 cursor-pointer flex-col items-center justify-center border px-4 py-1.5 transition-all duration-300 focus-visible:outline-2 focus-visible:outline-gold',
                         active
                           ? 'border-forest bg-forest text-ivory'
                           : 'border-charcoal/20 text-charcoal hover:border-forest hover:text-forest',
                       )}
                     >
-                      {s.label}
+                      <span className="text-sm font-semibold leading-tight">{s.label}</span>
+                      <span
+                        className={cn(
+                          'text-[10px] font-semibold tabular-nums tracking-wide',
+                          active ? 'text-honey' : 'text-stone',
+                        )}
+                      >
+                        {formatPrice(s.price)}
+                      </span>
                     </button>
                   );
                 })}
@@ -429,7 +466,7 @@ export default function ProductView({ view }: ViewProps) {
             </div>
 
             {/* Actions */}
-            <div className="mt-10 space-y-3">
+            <div ref={buyBoxRef} className="mt-10 space-y-3">
               <button
                 type="button"
                 onClick={handleAdd}
@@ -572,6 +609,48 @@ export default function ProductView({ view }: ViewProps) {
           </div>
         </div>
       </div>
+
+      {/* ── Sticky mobile buy bar — follows the shopper once the buy box scrolls away */}
+      {showStickyBar && !trayActive && (
+        <div
+          className="compare-tray fixed inset-x-0 bottom-0 z-40 border-t border-charcoal/10 bg-ivory/95 pb-[max(env(safe-area-inset-bottom),0.5rem)] pt-3 backdrop-blur-md lg:hidden"
+          aria-label={t('common.addToCart')}
+        >
+          <div className="container-editorial flex items-center gap-3">
+            <SmartImage
+              src={product.image}
+              alt=""
+              ratio="none"
+              className="hidden h-12 w-12 shrink-0 border border-charcoal/10 sm:block"
+            />
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-semibold text-charcoal">{name}</p>
+              <p className="text-xs text-stone tabular-nums">
+                {formatPrice(selectedSizeObj?.price ?? product.price)} ·{' '}
+                {selectedSizeObj?.label}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={handleAdd}
+              disabled={product.stock <= 0}
+              className={cn(
+                'btn-primary h-12 shrink-0 px-5 text-[10px] disabled:cursor-not-allowed disabled:opacity-40',
+                justAdded && 'bg-gold text-forest-deep',
+              )}
+            >
+              {justAdded ? (
+                <>
+                  <Check className="h-4 w-4" strokeWidth={2} aria-hidden="true" />
+                  {t('common.added')}
+                </>
+              ) : (
+                t('common.addToCart')
+              )}
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ── The Origin — map → province → farm → product ────────────────────── */}
       <section className="border-t border-charcoal/10 py-20 md:py-24">

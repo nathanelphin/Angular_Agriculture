@@ -33,6 +33,8 @@ function viewToHash(v: View): string {
       return `#/stories/${v.slug}`;
     case 'confirmation':
       return `#/confirmation/${v.orderId}`;
+    case 'track':
+      return `#/track/${v.orderNumber}`;
     case 'about':
       return v.anchor ? `#/about?s=${v.anchor}` : '#/about';
     default:
@@ -74,6 +76,8 @@ function hashToView(hash: string): View {
       return { name: 'checkout' };
     case 'confirmation':
       return { name: 'confirmation', orderId: segments[1] ?? '' };
+    case 'track':
+      return { name: 'track', orderNumber: segments[1] ?? '' };
     case 'wishlist':
       return { name: 'wishlist' };
     case 'account':

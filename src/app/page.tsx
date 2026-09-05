@@ -17,6 +17,7 @@ const AboutView = dynamic(() => import('@/components/views/AboutView'), { ssr: f
 const CartView = dynamic(() => import('@/components/views/CartView'), { ssr: false, loading: () => <ViewSkeleton /> });
 const CheckoutView = dynamic(() => import('@/components/views/CheckoutView'), { ssr: false, loading: () => <ViewSkeleton /> });
 const ConfirmationView = dynamic(() => import('@/components/views/ConfirmationView'), { ssr: false, loading: () => <ViewSkeleton /> });
+const TrackView = dynamic(() => import('@/components/views/TrackView'), { ssr: false, loading: () => <ViewSkeleton /> });
 const WishlistView = dynamic(() => import('@/components/views/WishlistView'), { ssr: false, loading: () => <ViewSkeleton /> });
 const AccountView = dynamic(() => import('@/components/views/AccountView'), { ssr: false, loading: () => <ViewSkeleton /> });
 
@@ -43,6 +44,8 @@ function renderView(view: ReturnType<typeof useRouterStore.getState>['view']) {
       return <CheckoutView {...props} />;
     case 'confirmation':
       return <ConfirmationView {...props} />;
+    case 'track':
+      return <TrackView {...props} />;
     case 'wishlist':
       return <WishlistView {...props} />;
     case 'account':

@@ -281,3 +281,35 @@ Stage Summary:
 - SOVANN FARM v1.3: fulfilment became observable (live order timeline + per-order status in account), browsing became faster (quick view without leaving the grid), search became personal (persisted recent searches + Enter-to-shop), the journal reads like print (reading progress + drop caps), the gallery feels luxury (cursor lens), and Khmer users get true Khmer dates everywhere.
 - Known notes: clipboard writes are environment-denied in headless previews (fallback + toasts behave correctly); order stages are demo-accelerated by design (labelled in UI); agent-browser dev-server must be restarted per tool call in this sandbox.
 - Ideas for next cycle: admin-lite reviews moderation list, product comparison tray, per-size stock display, order-tracking page with hash deep-link from account rows, KH proofread pass on new keys by native reader.
+
+---
+Task ID: 9 (Feature Round 5 — Comparison Commerce + Tracking Deep-Link, v1.4)
+Agent: Z.ai Code (main)
+Task: Assess status via agent-browser QA, then deepen styling details and add new commerce features (v1.4)
+
+Work Log:
+- STATUS ASSESSMENT: read worklog (v1.3 handoff), found dev server already restored by the platform supervisor (GET / 200 — the v1.2/v1.3 "restart per call" warning no longer applies while the supervisor keeps it alive). agent-browser sweep across home/shop/product/cart/account/farmers/stories/wishlist/about in EN+KH: per-view SEO titles correct, live order status chips working, free-shipping progress bar confirmed in cart, zero real console errors (same 2 benign empty ✗ entries) → declared STABLE, proceeded to feature work per the worklog's own "ideas for next cycle".
+
+FEATURES (mandatory #2):
+- PRODUCT COMPARISON TRAY + DIALOG (biggest addition): new persisted `useCompareStore` (max 3, dedupe, sovann-compare in localStorage); ProductCard gains a third hover affordance — Scale icon button in the right-rail stack (heart → quick view → compare; gold fill when active, toast guard "up to three harvests"); new shared CompareTray: full-width forest-deep glass bar pinned to the bottom edge (slide-up animation, per-thumb price chips + remove ×, dashed empty slots, "n/3 · hint" copy, Clear + gold COMPARE(n) CTA, aria-live selection announcements); new CompareDialog: editorial comparison table (image/name/province header per column with remove ×, rows = Price / Sizes / Rating / Province / Farmer / Craft / Availability / Tasting Notes; best price + highest rating highlighted with gold "BEST VALUE"/"HIGHEST RATED" chips; low-stock pulse row; per-column ADD TO CART with toast; footnote re first-size pricing). Tray mounted globally in SiteShell so it works from any view; quick-add verified from dialog.
+- ORDER TRACKING DEEP-LINK (#/track/{orderNumber}): new `track` View in types + hash router (to/from hash) + SiteShell title + lazy TrackView in page.tsx; TrackView shows truck eyebrow + huge display order number, placed date, live status chip (forest pulse / gold when delivered), the live OrderTimeline, Deliver-to card (address/phone/email + instructions quote), Delivery & Payment card, items list (names link to products) + full totals (gift wrap / harvest discount / promo), View-Full-Receipt + Continue CTAs; looks up by orderNumber OR id; graceful "Order not found" empty state. Account rows gained a Truck "Track" button (receipt stays as an underlined text link); ConfirmationView gained "Open Live Order Tracking" gold-underlined link under the timeline.
+- MOBILE STICKY ADD-TO-CART: ProductView watches its buy box with an IntersectionObserver (rootMargin -72px) — once the buy box scrolls above the viewport on <lg, an ivory/95 blurred bar slides up (thumb, name, price·size, ADD TO CART reusing the main add handler with ADDED ✓ state, safe-area padding); hides again on scroll-up.
+- PER-SIZE PRICE CHIPS: product-page size selector chips are now two-line (label + per-size price in tabular figures; honey on active / stone on idle) — shoppers can compare size economics at a glance (100g $12 · 250g $26 · 500g $48 · 1kg $90).
+
+STYLING DETAILS (mandatory #1):
+- New design tokens: `--animate-tray-up` springy slide-up keyframe + `.compare-tray`/`.compare-tray-panel` component classes shared by both bottom bars; tray uses forest-deep/95 + backdrop-blur + ivory hairlines (consistent with the announcement bar language).
+- Bottom-edge orchestration: fixed UI now cooperates instead of colliding — BackToTop yields (opacity-out) while the compare tray OR the sticky buy bar is active, coordinated through a new `bottomBarActive` flag in the UI store; sticky buy bar yields to the compare tray. Verified no overlap at 390px.
+- Editorial consistency across new surfaces: eyebrows with hairline rules, display-type headings, tabular price figures, gold focus rings, hover lifts, aria-live regions for tray changes.
+
+i18n: 28 new keys EN+KH (compare.* incl. row labels/best chips/hint/max, track.pageEyebrow/shipTo/deliveryInfo/itemsTitle/viewReceipt, account.trackOrder, confirm.trackLink). Khmer verified in-browser (tray, dialog incl. row labels + best-value chips, track page).
+
+BUGS FOUND & FIXED during QA:
+- Fixed div collision: sticky ATC bar, compare tray and BackToTop all claimed bottom-0 z-40 — resolved with the yield logic above (found via mobile screenshot showing the tray covering the ATC bar, then BackToTop covering ADD TO CART).
+- Test-harness lessons: wrong slug guess (wild-mondulkiri-honey) confirmed the product not-found fallback works; `.compare-tray` class is shared by both bars so DOM probes must match on text, not class alone.
+
+Verification: `bunx tsc --noEmit` → 0 errors in src/ (only pre-existing examples/skills noise); `bun run lint` clean; browser QA rounds desktop 1440 + mobile 390 in EN + KH: compare select→tray→dialog→quick-add→clear, max-3 toast, track deep-link from account row + confirmation link + unknown-order fallback, sticky bar show/add/hide, size chips, BackToTop yielding — all green; console clean; home EN title restored at handoff.
+
+Stage Summary:
+- SOVANN FARM v1.4: shoppers can now put harvests side by side (persist 3-way comparison with best-price/best-rating callouts), track any order at a shareable URL (#/track/SF-…), and buy from the product page one thumb-tap away on mobile; the size selector reads like a price menu. Fixed UX collisions between the three fixed bottom-edge controls via a shared UI-store flag.
+- Known notes: the compare tray intentionally yields nothing — the sticky ATC bar and BackToTop hide while it is open (restores on clear); compare selection persists across sessions by design; the two benign empty console entries pre-date v1.2.
+- Ideas for next cycle: admin-lite reviews moderation list, wishlist → compare hand-off ("compare all saved"), per-size stock in compare dialog (needs per-size stock in the data model), order-tracking status derived stages on the account card linking to track view, KH proofread pass by a native reader.

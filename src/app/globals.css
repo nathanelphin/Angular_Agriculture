@@ -29,6 +29,18 @@
   --animate-fade-in: fade-in 1s ease both;
   --animate-line-grow: line-grow 1.2s cubic-bezier(0.22, 1, 0.36, 1) both;
   --animate-heart-pop: heart-pop 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+  --animate-tray-up: tray-up 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+
+  @keyframes tray-up {
+    from {
+      transform: translateY(calc(100% + 1.5rem));
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
 
   @keyframes kenburns {
     from {
@@ -263,6 +275,14 @@
   }
   .lens-wrap.is-lensing .zoom-hint {
     opacity: 0;
+  }
+
+  /* Floating commerce bars (compare tray, mobile sticky buy bar) */
+  .compare-tray {
+    animation: var(--animate-tray-up);
+  }
+  .compare-tray-panel {
+    animation: var(--animate-tray-up);
   }
 }
 

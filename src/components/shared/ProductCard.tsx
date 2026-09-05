@@ -1,11 +1,13 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { Check, Eye, Heart } from 'lucide-react';
+import { toast } from 'sonner';
+import { Check, Eye, Heart, Scale } from 'lucide-react';
 import type { Product } from '@/lib/types';
 import { useLang } from '@/lib/stores/lang';
 import { useCartStore } from '@/lib/stores/cart';
 import { useWishlistStore } from '@/lib/stores/wishlist';
+import { useCompareStore } from '@/lib/stores/compare';
 import { useRouterStore } from '@/lib/stores/router';
 import { provinceName } from '@/lib/data/provinces';
 import { SmartImage } from '@/components/shared/SmartImage';
@@ -32,6 +34,8 @@ export function ProductCard({ product, priority = false, className }: ProductCar
   const [justAdded, setJustAdded] = useState(false);
   const [heartPop, setHeartPop] = useState(false);
   const [quickOpen, setQuickOpen] = useState(false);
+  const comparing = useCompareStore((s) => s.ids.includes(product.id));
+  const toggleCompare = useCompareStore((s) => s.toggle);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const popTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -60,6 +64,12 @@ export function ProductCard({ product, priority = false, className }: ProductCar
     requestAnimationFrame(() => setHeartPop(true));
     if (popTimer.current) clearTimeout(popTimer.current);
     popTimer.current = setTimeout(() => setHeartPop(false), 500);
+  };
+
+  const handleCompare = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const result = toggleCompare(product.id);
+    if (result === 'full') toast.info(t('compare.max'));
   };
 
   const openProduct = () => navigate({ name: 'product', slug: product.slug });
@@ -143,6 +153,22 @@ export function ProductCard({ product, priority = false, className }: ProductCar
         className="absolute right-3 top-14 z-10 hidden h-9 w-9 items-center justify-center bg-white/95 text-charcoal opacity-0 shadow-sm transition-all duration-300 hover:scale-110 hover:text-forest focus-visible:opacity-100 focus-visible:outline-2 focus-visible:outline-gold group-hover:opacity-100 sm:flex"
       >
         <Eye className="h-4 w-4" strokeWidth={1.5} aria-hidden="true" />
+      </button>
+
+      {/* Compare — third hover affordance in the right-rail stack */}
+      <button
+        type="button"
+        onClick={handleCompare}
+        aria-pressed={comparing}
+        aria-label={`${t('compare.add')}: ${name}`}
+        className={cn(
+          'absolute right-3 top-[6.25rem] z-10 hidden h-9 w-9 items-center justify-center shadow-sm transition-all duration-300 hover:scale-110 focus-visible:outline-2 focus-visible:outline-gold sm:flex',
+          comparing
+            ? 'bg-gold text-forest-deep opacity-100'
+            : 'bg-white/95 text-charcoal opacity-0 hover:text-forest group-hover:opacity-100 focus-visible:opacity-100',
+        )}
+      >
+        <Scale className={cn('h-4 w-4', comparing && 'fill-forest-deep/20')} strokeWidth={1.5} aria-hidden="true" />
       </button>
 
       {/* Info */}
