@@ -19,14 +19,20 @@ interface SmartImageProps {
   alt: string;
   ratio?: keyof typeof RATIOS;
   className?: string;
+  /**
+   * Classes for the hover-zoom wrapper (e.g. `group-hover:scale-105`).
+   * Kept separate from the <img> so per-call transition utilities can never
+   * override the load-in fade below.
+   */
   imgClassName?: string;
   sizes?: string;
   priority?: boolean;
 }
 
 /**
- * Editorial image with parchment placeholder + graceful fallback.
- * Plain <img> keeps behaviour predictable for locally generated assets.
+ * Editorial image with parchment placeholder + blur-up fade-in + graceful
+ * fallback. Plain <img> keeps behaviour predictable for locally generated
+ * assets; the hover-zoom layer is separate so call sites can style it freely.
  */
 export function SmartImage({
   src,
@@ -56,19 +62,22 @@ export function SmartImage({
         </div>
       )}
       {state !== 'error' && (
-        <img
-          src={src}
-          alt={alt}
-          loading={priority ? 'eager' : 'lazy'}
-          decoding="async"
-          onLoad={() => setState('ready')}
-          onError={() => setState('error')}
-          className={cn(
-            'h-full w-full object-cover transition-opacity duration-700',
-            state === 'ready' ? 'opacity-100' : 'opacity-0',
-            imgClassName,
-          )}
-        />
+        <div className={cn('h-full w-full will-change-transform', imgClassName)}>
+          <img
+            src={src}
+            alt={alt}
+            loading={priority ? 'eager' : 'lazy'}
+            decoding="async"
+            onLoad={() => setState('ready')}
+            onError={() => setState('error')}
+            className={cn(
+              'h-full w-full object-cover transition-[opacity,transform,filter] duration-[900ms] ease-[cubic-bezier(0.22,1,0.36,1)] will-change-[opacity,transform,filter]',
+              state === 'ready'
+                ? 'scale-100 opacity-100 blur-0'
+                : 'scale-[1.04] opacity-0 blur-[6px]',
+            )}
+          />
+        </div>
       )}
     </div>
   );

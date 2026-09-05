@@ -67,7 +67,9 @@ export function ProductCard({ product, priority = false, className }: ProductCar
           alt={`${product.name} — ${provinceName(product.province)}`}
           ratio="portrait"
           priority={priority}
-          imgClassName="transition-transform duration-[1400ms] ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-[1.06]"
+          // Base SmartImage handles the fade/blur-up transition; only the hover
+          // zoom is added here (transition overrides would break the load fade).
+          imgClassName="group-hover:scale-[1.06]"
         />
         {/* origin ribbon on hover */}
         <div className="pointer-events-none absolute inset-x-0 bottom-0 translate-y-2 bg-gradient-to-t from-forest-deep/70 to-transparent p-4 opacity-0 transition-all duration-500 group-hover:translate-y-0 group-hover:opacity-100">
@@ -126,8 +128,8 @@ export function ProductCard({ product, priority = false, className }: ProductCar
           <RatingStars value={product.rating} showValue reviews={product.reviews} reviewsLabel={t('product.reviews')} />
         </div>
 
-        <div className="mt-auto flex items-center justify-between pt-5">
-          <div>
+        <div className="mt-auto flex items-end justify-between gap-3 pt-5">
+          <div className="min-w-0">
             <p className="text-[10px] uppercase tracking-[0.2em] text-stone">{product.sizes[0]?.label ?? product.unit}</p>
             <p className="mt-0.5 text-lg font-semibold tracking-tight text-charcoal">
               {formatPrice(product.price)}
@@ -138,7 +140,7 @@ export function ProductCard({ product, priority = false, className }: ProductCar
             onClick={handleAdd}
             aria-label={`${t('common.addToCart')}: ${name}`}
             className={cn(
-              'btn-primary h-11 px-5 text-[10px]',
+              'btn-primary h-11 shrink-0 whitespace-nowrap px-4 text-[10px] sm:px-5',
               justAdded && '!bg-gold !text-forest-deep',
             )}
           >

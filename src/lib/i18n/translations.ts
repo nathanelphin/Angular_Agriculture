@@ -293,6 +293,41 @@ export const translations: Record<Lang, Record<string, string>> = {
     'account.language': 'Language',
     'account.demo': 'Prototype account — data lives only in your browser.',
     'account.viewOrder': 'View order',
+
+    'footer.allProducts': 'All Products',
+    'footer.aboutUs': 'About Us',
+    'footer.wishlist': 'Wishlist',
+    'footer.socialToast': 'Demo link — social profiles coming soon.',
+
+    'common.backToTop': 'Back to top',
+
+    'track.title': 'The Journey of Your Order',
+    'track.confirmed': 'Confirmed',
+    'track.packing': 'Packing at the Farm Hub',
+    'track.transit': 'On the Road',
+    'track.delivered': 'Delivered',
+
+    'reviews.title': 'From Our Tables',
+    'reviews.breakdown': 'Rating breakdown',
+    'reviews.write': 'Write a Review',
+    'reviews.writeTitle': 'Share Your Experience',
+    'reviews.writeDesc': 'Tell others what this harvest tastes like in your kitchen.',
+    'reviews.yourName': 'Your name',
+    'reviews.yourRating': 'Your rating',
+    'reviews.yourTitle': 'Review title',
+    'reviews.yourBody': 'Your review',
+    'reviews.submit': 'Submit Review',
+    'reviews.demoNote': 'Demo — reviews are simulated in this prototype.',
+    'reviews.verified': 'Verified buyer',
+    'reviews.helpful': 'Was this helpful?',
+    'reviews.thanks': 'Thanks for the feedback',
+    'reviews.found': 'found this helpful',
+    'reviews.stars': 'stars',
+
+    'product.recentlyViewed': 'Recently Viewed',
+
+    'article.prevStory': 'Previous Story',
+    'article.nextStory': 'Next Story',
   },
 
   kh: {
@@ -582,6 +617,41 @@ export const translations: Record<Lang, Record<string, string>> = {
     'account.language': 'ភាសា',
     'account.demo': 'គណនីគំរូ — ទិន្នន័យមានតែក្នុងកម្មវិធីរុករករបស់អ្នក។',
     'account.viewOrder': 'មើលការបញ្ជាទិញ',
+
+    'footer.allProducts': 'ផលិតផលទាំងអស់',
+    'footer.aboutUs': 'អំពីយើង',
+    'footer.wishlist': 'បញ្ជីចង់ទិញ',
+    'footer.socialToast': 'តំណសាកល្បង — បណ្តាញសង្ខេបនឹងមកដល់ឆាប់ៗ។',
+
+    'common.backToTop': 'ឡើងក្រឡេកមកលើ',
+
+    'track.title': 'ដំណើរនៃការបញ្ជាទិញរបស់អ្នក',
+    'track.confirmed': 'បានបញ្ជាក់',
+    'track.packing': 'កំពុងខ្ចប់នៅមជ្ឈមណ្ឌល',
+    'track.transit': 'កំពុងដឹកជញ្ជូន',
+    'track.delivered': 'បានដល់ដៃអ្នក',
+
+    'reviews.title': 'ពីតុអាហាររបស់យើង',
+    'reviews.breakdown': 'ការបែងចែកពិន្ទុ',
+    'reviews.write': 'សរសេរមតិយោបល់',
+    'reviews.writeTitle': 'ចែករំលែកបទពិសោធន៍របស់អ្នក',
+    'reviews.writeDesc': 'ប្រាប់អ្នកដទៃពីរសជាតិនៃផលដំណំនេះក្នុងផ្ទះបាយរបស់អ្នក។',
+    'reviews.yourName': 'ឈ្មោះរបស់អ្នក',
+    'reviews.yourRating': 'ពិន្ទុរបស់អ្នក',
+    'reviews.yourTitle': 'ចំណងជើងមតិ',
+    'reviews.yourBody': 'មតិរបស់អ្នក',
+    'reviews.submit': 'ដាក់ស្នើមតិ',
+    'reviews.demoNote': 'សាកល្បង — មតិយោបល់គឺជាការក្លែងធ្វើក្នុងគំរូនេះ។',
+    'reviews.verified': 'អ្នកទិញផ្ទៀងផ្ទាត់',
+    'reviews.helpful': 'មានប្រយោជន៍ឬ?',
+    'reviews.thanks': 'អរគុណសម្រាប់មតិ',
+    'reviews.found': 'ឃើញថាមានប្រយោជន៍',
+    'reviews.stars': 'ផ្កាយ',
+
+    'product.recentlyViewed': 'ទំនិញដែលទើបមើល',
+
+    'article.prevStory': 'រឿងរ៉ាវមុន',
+    'article.nextStory': 'រឿងរ៉ាវបន្ទាប់',
   },
 };
 

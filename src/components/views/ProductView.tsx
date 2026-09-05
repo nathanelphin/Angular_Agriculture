@@ -10,6 +10,8 @@ import { useLang } from '@/lib/stores/lang';
 import { useRouterStore } from '@/lib/stores/router';
 import { useCartStore } from '@/lib/stores/cart';
 import { useWishlistStore } from '@/lib/stores/wishlist';
+import { useRecentStore } from '@/lib/stores/recent';
+import { useMounted } from '@/lib/hooks';
 import { getCategory } from '@/lib/data/categories';
 import { getProvince, provinceName } from '@/lib/data/provinces';
 import { EmptyState } from '@/components/shared/EmptyState';
@@ -20,6 +22,7 @@ import { Reveal } from '@/components/shared/Reveal';
 import { SectionHeading } from '@/components/shared/SectionHeading';
 import { SmartImage } from '@/components/shared/SmartImage';
 import { OriginChain } from '@/components/product/OriginChain';
+import { ProductReviews } from '@/components/product/ProductReviews';
 import {
   Accordion,
   AccordionContent,
@@ -36,6 +39,9 @@ export default function ProductView({ view }: ViewProps) {
   const add = useCartStore((s) => s.add);
   const toggleWishlist = useWishlistStore((s) => s.toggle);
   const wishlistIds = useWishlistStore((s) => s.ids);
+  const recordRecent = useRecentStore((s) => s.record);
+  const recentSlugs = useRecentStore((s) => s.slugs);
+  const mounted = useMounted();
 
   const slug = view.name === 'product' ? view.slug : '';
 
@@ -72,6 +78,12 @@ export default function ProductView({ view }: ViewProps) {
     if (timer.current) clearTimeout(timer.current);
   }, []);
 
+  // Track this product in the recently-viewed history — only once it has
+  // actually loaded, so failed/unknown slugs never pollute the history.
+  useEffect(() => {
+    if (product) recordRecent(product.slug);
+  }, [product?.id, recordRecent]);
+
   // ── Gallery (product → farm → province) ─────────────────────────────────────
   const gallery = useMemo(() => {
     if (!product) return [];
@@ -97,6 +109,16 @@ export default function ProductView({ view }: ViewProps) {
     );
     return [...sameCategory, ...sameProvince].slice(0, 4);
   }, [product, allProducts]);
+
+  // ── Recently viewed (history strip, excludes the current product) ───────────
+  const recentProducts = useMemo(() => {
+    if (!product || !allProducts) return [];
+    return recentSlugs
+      .filter((s) => s !== product.slug)
+      .map((s) => allProducts.find((p) => p.slug === s))
+      .filter((p): p is NonNullable<typeof p> => Boolean(p))
+      .slice(0, 4);
+  }, [product, allProducts, recentSlugs]);
 
   // ── Loading / not found ─────────────────────────────────────────────────────
   if (product === undefined && !isError) {
@@ -225,7 +247,7 @@ export default function ProductView({ view }: ViewProps) {
                 alt={activeAlt}
                 ratio="portrait"
                 priority
-                imgClassName="transition-[opacity,transform] duration-[1200ms] ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-105"
+                imgClassName="group-hover:scale-105"
               />
             </div>
             <div className="mt-4 flex gap-3" role="group" aria-label={`${name} gallery`}>
@@ -262,13 +284,22 @@ export default function ProductView({ view }: ViewProps) {
             )}
 
             <div className="mt-5">
-              <RatingStars
-                value={product.rating}
-                size="md"
-                showValue
-                reviews={product.reviews}
-                reviewsLabel={t('product.reviews')}
-              />
+              <button
+                type="button"
+                onClick={() =>
+                  document.getElementById('reviews')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                }
+                aria-label={`${product.rating} ${t('product.reviews')} — ${t('reviews.title')}`}
+                className="cursor-pointer transition-opacity hover:opacity-80 focus-visible:outline-2 focus-visible:outline-gold"
+              >
+                <RatingStars
+                  value={product.rating}
+                  size="md"
+                  showValue
+                  reviews={product.reviews}
+                  reviewsLabel={t('product.reviews')}
+                />
+              </button>
             </div>
 
             <div className="mt-6 flex items-baseline gap-3">
@@ -505,6 +536,17 @@ export default function ProductView({ view }: ViewProps) {
         </div>
       </section>
 
+      {/* ── Reviews ─────────────────────────────────────────────────────────── */}
+      <section
+        id="reviews"
+        className="scroll-mt-24 border-t border-charcoal/10 py-20 md:py-24"
+        aria-label={t('reviews.title')}
+      >
+        <div className="container-editorial">
+          <ProductReviews product={product} />
+        </div>
+      </section>
+
       {/* ── Related harvests ────────────────────────────────────────────────── */}
       {related.length > 0 && (
         <section className="border-t border-charcoal/10 py-20 md:py-24">
@@ -512,6 +554,28 @@ export default function ProductView({ view }: ViewProps) {
             <SectionHeading title={t('product.related')} />
             <div className="mt-10 grid grid-cols-2 gap-4 md:gap-5 lg:grid-cols-4">
               {related.map((p, i) => (
+                <Reveal key={p.id} className="h-full" delay={(i % 4) * 70}>
+                  <ProductCard product={p} className="h-full w-full" />
+                </Reveal>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* ── Recently viewed ─────────────────────────────────────────────────── */}
+      {mounted && recentProducts.length > 0 && (
+        <section
+          className="border-t border-charcoal/10 bg-parchment/40 py-16 md:py-20"
+          aria-label={t('product.recentlyViewed')}
+        >
+          <div className="container-editorial">
+            <p className="eyebrow flex items-center gap-3 text-terracotta">
+              <span className="inline-block h-px w-10 bg-current opacity-60" aria-hidden="true" />
+              {t('product.recentlyViewed')}
+            </p>
+            <div className="mt-8 grid grid-cols-2 gap-4 md:gap-5 lg:grid-cols-4">
+              {recentProducts.map((p, i) => (
                 <Reveal key={p.id} className="h-full" delay={(i % 4) * 70}>
                   <ProductCard product={p} className="h-full w-full" />
                 </Reveal>

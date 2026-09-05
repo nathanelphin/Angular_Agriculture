@@ -7,9 +7,12 @@ import type { CartItem } from '@/lib/types';
 interface CartState {
   items: CartItem[];
   lastAddedAt: number; // timestamp used by navbar cart pulse
+  promoCode: string | null; // canonical uppercase promo code, e.g. HARVEST10
   add: (productId: string, size?: string, qty?: number) => void;
   remove: (productId: string, size: string) => void;
   setQty: (productId: string, size: string, qty: number) => void;
+  applyPromo: (code: string) => void;
+  clearPromo: () => void;
   clear: () => void;
 }
 
@@ -18,6 +21,7 @@ export const useCartStore = create<CartState>()(
     (set, get) => ({
       items: [],
       lastAddedAt: 0,
+      promoCode: null,
       add: (productId, size = '', qty = 1) => {
         const items = [...get().items];
         const idx = items.findIndex((i) => i.productId === productId && i.size === size);
@@ -40,7 +44,9 @@ export const useCartStore = create<CartState>()(
         );
         set({ items });
       },
-      clear: () => set({ items: [], lastAddedAt: 0 }),
+      applyPromo: (code) => set({ promoCode: code.trim().toUpperCase() }),
+      clearPromo: () => set({ promoCode: null }),
+      clear: () => set({ items: [], lastAddedAt: 0, promoCode: null }),
     }),
     { name: 'sovann-cart', storage: createJSONStorage(() => localStorage) },
   ),

@@ -10,6 +10,7 @@ import { Reveal } from '@/components/shared/Reveal';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { SmartImage } from '@/components/shared/SmartImage';
 import { formatPrice } from '@/components/shared/ProductCard';
+import { OrderTimeline } from '@/components/checkout/OrderTimeline';
 
 export default function ConfirmationView({ view }: ViewProps) {
   const orderId = view.name === 'confirmation' ? view.orderId : '';
@@ -117,6 +118,13 @@ export default function ConfirmationView({ view }: ViewProps) {
           </div>
         </Reveal>
 
+        {/* ── Order journey ──────────────────────────────────────────────── */}
+        <Reveal delay={250} className="mt-4">
+          <div className="card-editorial p-6 md:p-8">
+            <OrderTimeline etaLabel={order.eta} />
+          </div>
+        </Reveal>
+
         {/* ── Items ─────────────────────────────────────────────────────────── */}
         <Reveal delay={280}>
           <section className="mt-12" aria-label={t('confirm.items')}>
@@ -162,6 +170,17 @@ export default function ConfirmationView({ view }: ViewProps) {
                 <div className="flex items-center justify-between text-gold">
                   <span>{tt('Harvest discount −5%', 'បញ្ចុះតម្លៃរដូវចម្ការ −៥%')}</span>
                   <span className="tabular-nums">−{formatPrice(order.discount)}</span>
+                </div>
+              )}
+              {order.promoCode && (order.promoDiscount ?? 0) > 0 && (
+                <div className="flex items-center justify-between text-gold">
+                  <span>
+                    {tt('Promo code', 'កូដបញ្ចុះតម្លៃ')}
+                    <span className="ml-2 text-[10px] font-bold tracking-[0.18em] text-stone">
+                      {order.promoCode}
+                    </span>
+                  </span>
+                  <span className="tabular-nums">−{formatPrice(order.promoDiscount ?? 0)}</span>
                 </div>
               )}
               <div className="rule" />

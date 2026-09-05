@@ -6,6 +6,8 @@ import { Logo } from '@/components/shared/Logo';
 import { KhmerOrnament, KhmerPatternBand } from '@/components/shared/KhmerOrnament';
 import { useRouterStore } from '@/lib/stores/router';
 import { useLang } from '@/lib/stores/lang';
+import { categories } from '@/lib/data/categories';
+import type { CategoryId } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
 interface FooterLink {
@@ -21,15 +23,24 @@ export function Footer() {
   const { t, lang, setLang } = useLang();
   const navigate = useRouterStore((s) => s.navigate);
 
+  // Category links reuse the catalogue data so labels localise in Khmer too.
+  const categoryLink = (id: CategoryId, fallbackEn: string): FooterLink => {
+    const category = categories.find((c) => c.id === id);
+    return {
+      label: category ? (lang === 'kh' ? category.nameKh : category.name) : fallbackEn,
+      go: () => navigate({ name: 'shop', category: id }),
+    };
+  };
+
   const columns: { title: string; links: FooterLink[] }[] = [
     {
       title: t('footer.shop'),
       links: [
-        { label: 'All Products', go: () => navigate({ name: 'shop' }) },
-        { label: 'Rice & Grains', go: () => navigate({ name: 'shop', category: 'rice' }) },
-        { label: 'Fruits', go: () => navigate({ name: 'shop', category: 'fruits' }) },
-        { label: 'Spices', go: () => navigate({ name: 'shop', category: 'spices' }) },
-        { label: 'Gift Collections', go: () => navigate({ name: 'shop', category: 'gifts' }) },
+        { label: t('footer.allProducts'), go: () => navigate({ name: 'shop' }) },
+        categoryLink('rice', 'Rice & Grains'),
+        categoryLink('fruits', 'Fruits'),
+        categoryLink('spices', 'Spices'),
+        categoryLink('gifts', 'Gift Collections'),
       ],
     },
     {
@@ -47,9 +58,8 @@ export function Footer() {
     {
       title: t('footer.about'),
       links: [
-        { label: 'About Us', go: () => navigate({ name: 'about' }) },
-        { label: t('nav.farmers'), go: () => navigate({ name: 'farmers' }) },
-        { label: 'Wishlist', go: () => navigate({ name: 'wishlist' }) },
+        { label: t('footer.aboutUs'), go: () => navigate({ name: 'about' }) },
+        { label: t('footer.wishlist'), go: () => navigate({ name: 'wishlist' }) },
         { label: t('nav.account'), go: () => navigate({ name: 'account' }) },
       ],
     },
@@ -88,7 +98,7 @@ export function Footer() {
                 key={social.label}
                 type="button"
                 aria-label={social.label}
-                onClick={() => toast('Demo link — social profiles coming soon.')}
+                onClick={() => toast(t('footer.socialToast'))}
                 className="flex h-10 w-10 items-center justify-center border border-ivory/20 text-ivory/70 transition-colors duration-300 hover:border-gold hover:text-gold"
               >
                 <social.icon className="h-[17px] w-[17px]" strokeWidth={1.5} aria-hidden="true" />

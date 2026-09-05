@@ -197,3 +197,29 @@ Work Log:
 Stage Summary:
 - SOVANN FARM v1 is COMPLETE and verified: 13 views, 6 API routes, SQLite persistence, 39 generated photographs, EN/KH i18n, functional cart/wishlist/checkout/search, interactive province map, editorial stories/farmers/about, premium responsive design (Playfair/Manrope/Kantumruy, forest/gold/terracotta/ivory palette).
 - Known minor polish ideas for next cycle: product-card ADD button long-label wrap in KH, lazy-image fade polish on slow networks, story article prev/next pagination.
+
+---
+Task ID: 6 (QA + Feature Expansion Round 2)
+Agent: Z.ai Code (main)
+Task: Full browser QA (agent-browser), bug fixes, styling detail pass, and six new commerce/content features
+
+Work Log:
+- QA sweep first (agent-browser, desktop 1440 + mobile 390, EN + KH): home scroll-reveals, shop grid, product detail, gallery, stepper, add-to-cart, cart math, checkout 3 steps, order placement, confirmation, footer, mobile drawer, search overlay, language toggling — all core flows healthy; no console errors; dev.log clean.
+- BUG FIX 1 — Footer i18n gap (found in QA): hardcoded EN labels ('All Products', 'Rice & Grains', 'Fruits', 'Spices', 'Gift Collections', 'About Us', 'Wishlist') now use categories data (lang-aware nameKh) + new translation keys footer.allProducts/aboutUs/wishlist; social toast now bilingual via footer.socialToast; removed duplicated farmers link in About column.
+- BUG FIX 2 — SmartImage fade was silently broken on every card: call sites passed `transition-transform` via imgClassName which tailwind-merge used to override the base `transition-opacity` (root cause of the "lazy-image fade polish" worklog note). Restructured SmartImage: imgClassName now styles a separate hover-zoom wrapper div, while the <img> keeps its own untouchable blur-up transition (opacity+scale+filter, 900ms, luxury cubic-bezier). All 11 existing imgClassName call sites fixed automatically.
+- BUG FIX 3 — ProductReviews runtime crash: signed right-shift (`s >> 3`) on a uint32 seed produced negative array indexes for high-hash products → `Cannot read properties of undefined (reading 'en')`. Switched to unsigned shifts (s>>>3/5/7); reviewer spread improved with `(s + i*3) % AUTHORS.length`.
+- BUG FIX 4 — recently-viewed recorded raw hash slugs even for non-existent products (pollution). Now records only after the product query resolves (effect keyed on product.id).
+- STYLING — ProductCard KH wrap fix: ADD button gets whitespace-nowrap + shrink-0, row uses items-end + gap-3 (verified: បញ្ចូលទៅរទេះ renders on one line in KH).
+- FEATURE 1 — Promo code system: totals.ts PROMO_CODES (HARVEST10 −10% · FREESHIP free delivery · SIEMREAP5 −$5 over $30) + evaluatePromo/findPromo; cart store persists promoCode (applyPromo/clearPromo); shared PromoCodeInput (apply form + applied chip, bilingual errors incl. minimum-spend, sonner feedback); wired into CartView summary, checkout OrderSummary (allowPromo) with promo line, order payload (promoCode/promoDiscount), StoredOrder type, orders API (persisted + echoed back), confirmation totals; unit-tested all edge cases (min-spend rejection, case-insensitivity, freeship zeroing standard+express).
+- FEATURE 2 — Product reviews (ProductReviews.tsx): deterministic seeded reviews per product (hash of id → authors/locations/titles/bodies/stars/dates), rating summary + breakdown bars blended toward catalogue rating, verified-buyer badges, "helpful" voting with live counter, write-a-review dialog (star picker + validated form → demo moderation toast), buy-box rating now scrolls to #reviews.
+- FEATURE 3 — Story prev/next pagination: editorial two-cell nav band (Previous Story / Next Story) between shop-the-story CTA and Continue Reading; next card spans full width when no prev; first/last stories degrade gracefully.
+- FEATURE 4 — Recently viewed: new persisted useRecentStore (max 8 slugs) + parchment strip on product page (4 ProductCards, excludes current, hidden when empty).
+- FEATURE 5 — BackToTop global control (SiteShell): appears after 640px scroll, editorial ivory square + ArrowUp, smooth scroll, safe-area aware.
+- FEATURE 6 — Order timeline on confirmation (OrderTimeline.tsx): Confirmed → Packing at the Farm Hub → On the Road → Delivered with live first step, ETA note; sits between impact band and items.
+- Cart free-shipping progress bar: gold→moss bar with % + remaining-amount label, role=progressbar; nudges toward the $35 threshold.
+- i18n: ~40 new translation keys EN+KH (footer.*, track.*, reviews.*, product.recentlyViewed, article.prevStory/nextStory, common.backToTop); fixed two garbled Khmer strings in review data.
+- Verification: tsc --noEmit → 0 errors in src/; bun run lint clean; bun unit test of promo edge cases passes; agent-browser re-verified cart→promo apply→checkout→order SF-2026-05626 (promo line + timeline + $17.00 total correct), reviews in EN+KH, write-review dialog submit toast, story pagination, recently-viewed strip, KH card buttons, footer KH links, BackToTop.
+
+Stage Summary:
+- SOVANN FARM v1.1: QA-verified with six new features (promos, reviews, story pagination, recently-viewed, back-to-top, order timeline) + free-shipping progress bar + four real bug fixes (SmartImage fade root cause, reviews crash, footer i18n, recent-slug pollution).
+- Remaining ideas for next cycle: share buttons on story/product pages (OG), wishlist animation polish, per-product review persistence via Prisma (currently derived/mock),KH locale date fallback in headless browsers (dates render 'en-US' style when km-KH unsupported).

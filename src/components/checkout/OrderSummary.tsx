@@ -3,6 +3,7 @@
 import { PencilLine } from 'lucide-react';
 import { useLang } from '@/lib/stores/lang';
 import { SmartImage } from '@/components/shared/SmartImage';
+import { PromoCodeInput } from '@/components/shared/PromoCodeInput';
 import { formatPrice } from '@/components/shared/ProductCard';
 import { cn } from '@/lib/utils';
 
@@ -20,6 +21,11 @@ interface OrderSummaryProps {
   subtotal: number;
   shipping: number;
   discount: number;
+  promoCode?: string;
+  promoLabel?: string;
+  promoDiscount?: number;
+  /** Allow applying a code right here (checkout aside). */
+  allowPromo?: boolean;
   /** Show quick "edit" links back to information / delivery steps. */
   showEdits?: boolean;
   onEdit?: (step: 1 | 2) => void;
@@ -32,12 +38,16 @@ export function OrderSummary({
   subtotal,
   shipping,
   discount,
+  promoCode,
+  promoLabel,
+  promoDiscount,
+  allowPromo = false,
   showEdits = false,
   onEdit,
   className,
 }: OrderSummaryProps) {
   const { t, lang } = useLang();
-  const total = subtotal + shipping - discount;
+  const total = subtotal + shipping - discount - (promoDiscount ?? 0);
   const discountLabel = lang === 'kh' ? 'បញ្ចុះតម្លៃរដូវចម្ការ −៥%' : 'Harvest discount −5%';
 
   return (
@@ -83,7 +93,27 @@ export function OrderSummary({
             <dd className="font-semibold tabular-nums text-gold">−{formatPrice(discount)}</dd>
           </div>
         )}
+        {promoDiscount != null && promoDiscount > 0 && (
+          <div className="flex items-center justify-between">
+            <dt className="text-gold">
+              {promoLabel ?? promoCode}
+              {promoCode && (
+                <span className="ml-2 text-[10px] font-bold tracking-[0.18em] text-stone">
+                  {promoCode}
+                </span>
+              )}
+            </dt>
+            <dd className="font-semibold tabular-nums text-gold">−{formatPrice(promoDiscount)}</dd>
+          </div>
+        )}
       </dl>
+
+      {allowPromo && (
+        <>
+          <div className="rule my-5" />
+          <PromoCodeInput subtotal={subtotal} />
+        </>
+      )}
 
       <div className="rule my-6" />
 

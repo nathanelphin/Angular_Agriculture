@@ -24,6 +24,7 @@ import { useRouterStore } from '@/lib/stores/router';
 import { useLang } from '@/lib/stores/lang';
 import { useMounted } from '@/lib/hooks';
 import { provinces } from '@/lib/data/provinces';
+import { findPromo } from '@/components/checkout/totals';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import {
@@ -124,6 +125,7 @@ export default function CheckoutView({ view }: ViewProps) {
   const navigate = useRouterStore((s) => s.navigate);
   const items = useCartStore((s) => s.items);
   const clearCart = useCartStore((s) => s.clear);
+  const promoCode = useCartStore((s) => s.promoCode);
   const addOrder = useOrdersStore((s) => s.add);
   const mounted = useMounted();
   const { data: products } = useQuery({
@@ -154,9 +156,18 @@ export default function CheckoutView({ view }: ViewProps) {
   );
 
   const subtotal = lines.reduce((acc, l) => acc + l.unitPrice * l.item.qty, 0);
-  const shipping = shippingFor(delivery, subtotal);
+  const promo = promoCode ? findPromo(promoCode) : undefined;
+  const promoOk = Boolean(promo && subtotal >= promo.minSubtotal);
+  const shipping = shippingFor(delivery, subtotal, promoOk ? promo : undefined);
   const discount = harvestDiscountFor(subtotal);
-  const total = subtotal + shipping - discount;
+  const promoDiscount = promoOk
+    ? promo!.kind === 'percent'
+      ? Math.round(subtotal * (promo!.value / 100) * 100) / 100
+      : promo!.kind === 'amount'
+        ? promo!.value
+        : 0
+    : 0;
+  const total = subtotal + shipping - discount - promoDiscount;
 
   const summaryItems: OrderSummaryItem[] = lines.map(({ item, product, unitPrice }) => ({
     key: `${item.productId}-${item.size}`,
@@ -221,6 +232,8 @@ export default function CheckoutView({ view }: ViewProps) {
       subtotal,
       shipping,
       discount,
+      promoCode: promoOk ? promo!.code : undefined,
+      promoDiscount: promoOk && promoDiscount > 0 ? promoDiscount : undefined,
       total,
       customer: {
         name: form.name.trim(),
@@ -310,13 +323,13 @@ export default function CheckoutView({ view }: ViewProps) {
       id: 'standard',
       name: t('delivery.standard'),
       desc: t('delivery.standard.desc'),
-      fee: shippingFor('standard', subtotal),
+      fee: shippingFor('standard', subtotal, promoOk ? promo : undefined),
     },
     {
       id: 'express',
       name: t('delivery.express'),
       desc: t('delivery.express.desc'),
-      fee: shippingFor('express', subtotal),
+      fee: shippingFor('express', subtotal, promoOk ? promo : undefined),
     },
     {
       id: 'pickup',
@@ -659,6 +672,10 @@ export default function CheckoutView({ view }: ViewProps) {
               subtotal={subtotal}
               shipping={shipping}
               discount={discount}
+              promoCode={promoOk && promoDiscount > 0 ? promo!.code : undefined}
+              promoLabel={promoOk ? (lang === 'kh' ? promo!.labelKh : promo!.labelEn) : undefined}
+              promoDiscount={promoOk && promoDiscount > 0 ? promoDiscount : undefined}
+              allowPromo
               showEdits={step === 3}
               onEdit={(s) => setStep(s)}
               className="p-6 md:p-8"

@@ -7,6 +7,8 @@ interface OrderPayload {
   subtotal: number;
   shipping: number;
   discount: number;
+  promoCode?: string;
+  promoDiscount?: number;
   total: number;
   customer: {
     name: string;
@@ -67,6 +69,8 @@ export async function POST(request: Request) {
       subtotal: payload.subtotal,
       shipping: payload.shipping,
       discount: payload.discount,
+      promoCode: payload.promoCode,
+      promoDiscount: payload.promoDiscount,
       total: payload.total,
       customer: payload.customer,
       delivery: payload.delivery,

@@ -10,6 +10,7 @@ import { SmartImage } from '@/components/shared/SmartImage';
 import { Reveal } from '@/components/shared/Reveal';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { formatPrice } from '@/components/shared/ProductCard';
+import { cn } from '@/lib/utils';
 
 // ─── Story article — long-form editorial reading view ────────────────────────
 
@@ -54,6 +55,12 @@ export default function StoryArticleView({ view }: ViewProps) {
     ? (products ?? []).find((p) => p.slug === story.relatedProductSlug)
     : undefined;
   const more = (stories ?? []).filter((s) => s.id !== story.id).slice(0, 2);
+
+  // Prev / next by publication order (list order in the journal data).
+  const all = stories ?? [];
+  const idx = all.findIndex((s) => s.id === story.id);
+  const prevStory = idx > 0 ? all[idx - 1] : undefined;
+  const nextStory = idx >= 0 && idx < all.length - 1 ? all[idx + 1] : undefined;
   const firstParagraph = story.content.findIndex((b) => b.type === 'paragraph');
 
   return (
@@ -182,6 +189,52 @@ export default function StoryArticleView({ view }: ViewProps) {
                 <ArrowRight className="h-3.5 w-3.5" strokeWidth={1.5} />
               </button>
             </aside>
+          </Reveal>
+        )}
+
+        {/* Prev / next pagination */}
+        {(prevStory || nextStory) && (
+          <Reveal>
+            <nav
+              className="mt-16 grid border border-charcoal/10 bg-white sm:grid-cols-2"
+              aria-label={t('article.prevStory')}
+            >
+              {prevStory ? (
+                <button
+                  type="button"
+                  onClick={() => navigate({ name: 'story', slug: prevStory.slug })}
+                  className="group flex cursor-pointer flex-col items-start gap-2 border-b border-charcoal/10 p-6 text-left transition-colors duration-300 hover:bg-parchment/50 sm:border-b-0 sm:border-r md:p-8"
+                >
+                  <span className="inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.22em] text-stone transition-colors group-hover:text-terracotta">
+                    <ArrowLeft className="h-3 w-3" strokeWidth={1.5} aria-hidden="true" />
+                    {t('article.prevStory')}
+                  </span>
+                  <span className="line-clamp-2 font-display text-lg leading-snug text-charcoal transition-colors group-hover:text-forest">
+                    {lang === 'kh' && prevStory.titleKh ? prevStory.titleKh : prevStory.title}
+                  </span>
+                </button>
+              ) : (
+                <span aria-hidden="true" className="hidden sm:block" />
+              )}
+              {nextStory && (
+                <button
+                  type="button"
+                  onClick={() => navigate({ name: 'story', slug: nextStory.slug })}
+                  className={cn(
+                    'group flex cursor-pointer flex-col items-start gap-2 p-6 text-left transition-colors duration-300 hover:bg-parchment/50 sm:items-end sm:text-right md:p-8',
+                    !prevStory && 'sm:col-span-2',
+                  )}
+                >
+                  <span className="inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.22em] text-stone transition-colors group-hover:text-terracotta">
+                    {t('article.nextStory')}
+                    <ArrowRight className="h-3 w-3" strokeWidth={1.5} aria-hidden="true" />
+                  </span>
+                  <span className="line-clamp-2 font-display text-lg leading-snug text-charcoal transition-colors group-hover:text-forest">
+                    {lang === 'kh' && nextStory.titleKh ? nextStory.titleKh : nextStory.title}
+                  </span>
+                </button>
+              )}
+            </nav>
           </Reveal>
         )}
 

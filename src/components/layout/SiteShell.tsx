@@ -7,6 +7,7 @@ import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { SearchOverlay } from '@/components/layout/SearchOverlay';
 import { MobileMenu } from '@/components/layout/MobileMenu';
+import { BackToTop } from '@/components/shared/BackToTop';
 import { Toaster } from '@/components/ui/sonner';
 
 /**
@@ -45,6 +46,7 @@ export function SiteShell({ children }: { children: ReactNode }) {
       <Footer />
       <SearchOverlay />
       <MobileMenu />
+      <BackToTop />
       <Toaster position="top-center" richColors />
     </div>
   );

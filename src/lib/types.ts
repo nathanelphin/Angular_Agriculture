@@ -160,7 +160,9 @@ export interface StoredOrder {
   items: OrderItem[];
   subtotal: number;
   shipping: number;
-  discount: number;
+  discount: number; // harvest loyalty −5%
+  promoCode?: string; // e.g. HARVEST10
+  promoDiscount?: number; // USD
   total: number;
   customer: {
     name: string;

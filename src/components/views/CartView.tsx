@@ -13,9 +13,11 @@ import { SmartImage } from '@/components/shared/SmartImage';
 import { Reveal } from '@/components/shared/Reveal';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { QuantityStepper } from '@/components/shared/QuantityStepper';
+import { PromoCodeInput } from '@/components/shared/PromoCodeInput';
 import { formatPrice } from '@/components/shared/ProductCard';
 import {
   FREE_SHIPPING_THRESHOLD,
+  findPromo,
   harvestDiscountFor,
   shippingFor,
 } from '@/components/checkout/totals';
@@ -27,6 +29,7 @@ export default function CartView({ view }: ViewProps) {
   const items = useCartStore((s) => s.items);
   const setQty = useCartStore((s) => s.setQty);
   const remove = useCartStore((s) => s.remove);
+  const promoCode = useCartStore((s) => s.promoCode);
   const mounted = useMounted();
   const { data: products } = useQuery({ queryKey: ['products'], queryFn: fetchProducts });
 
@@ -47,11 +50,21 @@ export default function CartView({ view }: ViewProps) {
 
   const rows = useMemo(() => lines.filter((l) => l.product), [lines]);
   const subtotal = rows.reduce((acc, l) => acc + l.unitPrice * l.item.qty, 0);
-  const shipping = shippingFor('standard', subtotal);
+  const promo = promoCode ? findPromo(promoCode) : undefined;
+  const promoOk = Boolean(promo && subtotal >= promo.minSubtotal);
+  const shipping = shippingFor('standard', subtotal, promoOk ? promo : undefined);
   const discount = harvestDiscountFor(subtotal);
-  const total = subtotal + shipping - discount;
+  const promoDiscount = promoOk
+    ? promo!.kind === 'percent'
+      ? Math.round(subtotal * (promo!.value / 100) * 100) / 100
+      : promo!.kind === 'amount'
+        ? promo!.value
+        : 0
+    : 0;
+  const total = subtotal + shipping - discount - promoDiscount;
   const count = items.reduce((acc, i) => acc + i.qty, 0);
   const empty = mounted && items.length === 0;
+  const shipProgress = Math.min(100, Math.round((subtotal / FREE_SHIPPING_THRESHOLD) * 100));
 
   return (
     <div className="pb-28">
@@ -213,6 +226,40 @@ export default function CartView({ view }: ViewProps) {
               <div className="card-editorial p-8">
                 <h2 className="font-display text-2xl text-charcoal">{t('checkout.summary')}</h2>
 
+                {/* Free-shipping progress */}
+                {mounted && rows.length > 0 && (
+                  <div className="mt-6">
+                    <div className="flex items-baseline justify-between gap-3 text-[11px] font-semibold uppercase tracking-[0.18em]">
+                      <span className={shipping === 0 ? 'text-moss' : 'text-stone'}>
+                        {shipping === 0
+                          ? tt('Complimentary delivery unlocked', 'ដឹកជញ្ជូនឥតគិតថ្លៃបានបើក')
+                          : tt(
+                              `${formatPrice(FREE_SHIPPING_THRESHOLD - subtotal)} away from free delivery`,
+                              `ចំណាយ ${formatPrice(FREE_SHIPPING_THRESHOLD - subtotal)} ទៀត ដើម្បីដឹកជញ្ជូនឥតគិតថ្លៃ`,
+                            )}
+                      </span>
+                      <span className="tabular-nums text-stone">{shipProgress}%</span>
+                    </div>
+                    <div
+                      role="progressbar"
+                      aria-valuenow={shipProgress}
+                      aria-valuemin={0}
+                      aria-valuemax={100}
+                      aria-label={t('announcement.shipping')}
+                      className="mt-2.5 h-1.5 w-full overflow-hidden bg-charcoal/8"
+                    >
+                      <div
+                        className={
+                          shipping === 0
+                            ? 'h-full bg-moss transition-[width] duration-700 ease-out'
+                            : 'h-full bg-gold transition-[width] duration-700 ease-out'
+                        }
+                        style={{ width: `${shipProgress}%` }}
+                      />
+                    </div>
+                  </div>
+                )}
+
                 <dl className="mt-7 space-y-3.5 text-sm">
                   <div className="flex items-center justify-between">
                     <dt className="text-stone">{t('cart.subtotal')}</dt>
@@ -232,7 +279,7 @@ export default function CartView({ view }: ViewProps) {
                       {shipping === 0 ? t('cart.free') : formatPrice(shipping)}
                     </dd>
                   </div>
-                  {mounted && rows.length > 0 && subtotal < FREE_SHIPPING_THRESHOLD && (
+                  {mounted && rows.length > 0 && subtotal < FREE_SHIPPING_THRESHOLD && shipping > 0 && (
                     <p className="text-[11px] italic leading-relaxed text-stone">
                       {tt(
                         `Add ${formatPrice(FREE_SHIPPING_THRESHOLD - subtotal)} more for complimentary delivery.`,
@@ -250,7 +297,24 @@ export default function CartView({ view }: ViewProps) {
                       </dd>
                     </div>
                   )}
+                  {promoDiscount > 0 && promo && (
+                    <div className="flex items-center justify-between">
+                      <dt className="text-gold">
+                        {lang === 'kh' ? promo.labelKh : promo.labelEn}
+                        <span className="ml-2 text-[10px] font-bold tracking-[0.18em] text-stone">
+                          {promo.code}
+                        </span>
+                      </dt>
+                      <dd className="font-semibold tabular-nums text-gold">
+                        −{formatPrice(promoDiscount)}
+                      </dd>
+                    </div>
+                  )}
                 </dl>
+
+                {/* Promo code */}
+                <div className="rule my-6" />
+                <PromoCodeInput subtotal={subtotal} />
 
                 <div className="rule my-6" />
 
