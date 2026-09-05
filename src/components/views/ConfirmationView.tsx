@@ -1,6 +1,6 @@
 'use client';
 
-import { Check, Printer } from 'lucide-react';
+import { Check, Printer, Scale } from 'lucide-react';
 import type { ViewProps } from '@/lib/types';
 import { useOrdersStore } from '@/lib/stores/orders';
 import { useRouterStore } from '@/lib/stores/router';
@@ -151,6 +151,60 @@ export default function ConfirmationView({ view }: ViewProps) {
                   'ផលដំណំរបស់អ្នកនឹងមកដល់ជាក្រដាសស្លុងដៃ ជាមួយកាតរឿងកសិករ។',
                 )}
               </p>
+            </div>
+          </Reveal>
+        )}
+
+        {/* ── The shelf's word — honest ledger of trimmed lines ─────────────── */}
+        {order.adjustments && order.adjustments.length > 0 && (
+          <Reveal delay={270} className="mt-4">
+            <div
+              className="border border-terracotta/30 bg-terracotta/[0.04] p-6"
+              role="note"
+              aria-label={t('confirm.adjust.title')}
+            >
+              <p className="eyebrow flex items-center gap-2.5 text-terracotta">
+                <Scale className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden="true" />
+                {t('confirm.adjust.title')}
+              </p>
+              <p className="mt-3 text-xs leading-relaxed text-stone">
+                {t('confirm.adjust.body')}
+              </p>
+              <ul className="mt-4 border-t border-charcoal/10">
+                {order.adjustments.map((a) => (
+                  <li
+                    key={`${a.productId}-${a.size}`}
+                    className="flex items-baseline justify-between gap-4 border-b border-charcoal/10 py-2.5 last:border-0"
+                  >
+                    <span className="min-w-0">
+                      <span className="block truncate text-xs font-semibold text-charcoal">
+                        {a.name}
+                      </span>
+                      <span className="text-[10px] uppercase tracking-[0.14em] text-stone">
+                        {a.size}
+                      </span>
+                    </span>
+                    <span className="shrink-0 text-xs tabular-nums">
+                      <span className="text-terracotta line-through decoration-terracotta/60">
+                        ×{a.requestedQty}
+                      </span>
+                      <span
+                        className="mx-1.5 text-charcoal/30"
+                        aria-hidden="true"
+                      >
+                        →
+                      </span>
+                      {a.storedQty > 0 ? (
+                        <span className="font-semibold text-forest">×{a.storedQty}</span>
+                      ) : (
+                        <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-terracotta">
+                          {t('confirm.adjust.dropped')}
+                        </span>
+                      )}
+                    </span>
+                  </li>
+                ))}
+              </ul>
             </div>
           </Reveal>
         )}

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import type { OrderItem, StoredOrder } from '@/lib/types';
+import type { OrderAdjustment, OrderItem, StoredOrder } from '@/lib/types';
 import { products } from '@/lib/data/products';
 import { shelfFor } from '@/lib/stock';
 import {
@@ -36,6 +36,9 @@ interface OrderPayload {
   eta: string;
   giftWrap?: boolean;
   giftNote?: string;
+  /** Lines the client already trimmed to the shelf — merged with the server's
+   *  own ledger so the order's honest record is complete. */
+  adjustments?: OrderAdjustment[];
 }
 
 function generateOrderNumber(): string {
@@ -48,14 +51,27 @@ function generateOrderNumber(): string {
  * never promise more than the shelf holds: every line is re-priced from the
  * catalogue and clamped to its shelf, over-shelf / unknown lines are trimmed
  * or dropped, and the money math is recomputed from the trusted numbers.
+ * Every trim is written down — the order carries its own honest ledger.
  */
-function clampItems(items: OrderItem[]): { items: OrderItem[]; adjusted: boolean } {
+function clampItems(items: OrderItem[]): {
+  items: OrderItem[];
+  adjusted: boolean;
+  adjustments: OrderAdjustment[];
+} {
   let adjusted = false;
+  const adjustments: OrderAdjustment[] = [];
 
   const clamped = items.flatMap((item) => {
     const product = products.find((p) => p.id === item.productId);
     if (!product) {
       adjusted = true; // unknown product — the line cannot be honoured
+      adjustments.push({
+        productId: item.productId,
+        name: item.name,
+        size: item.size,
+        requestedQty: item.qty,
+        storedQty: 0,
+      });
       return [];
     }
     const size = product.sizes.find((s) => s.label === item.size);
@@ -64,13 +80,31 @@ function clampItems(items: OrderItem[]): { items: OrderItem[]; adjusted: boolean
     const qty = Math.min(item.qty, shelf);
     if (qty <= 0) {
       adjusted = true; // nothing on the shelf — the line is dropped
+      adjustments.push({
+        productId: item.productId,
+        name: item.name,
+        size: item.size,
+        requestedQty: item.qty,
+        storedQty: 0,
+      });
       return [];
     }
-    if (qty !== item.qty || unitPrice !== item.unitPrice) adjusted = true;
+    if (qty !== item.qty || unitPrice !== item.unitPrice) {
+      adjusted = true;
+    }
+    if (qty !== item.qty) {
+      adjustments.push({
+        productId: item.productId,
+        name: item.name,
+        size: item.size,
+        requestedQty: item.qty,
+        storedQty: qty,
+      });
+    }
     return [{ ...item, qty, unitPrice }];
   });
 
-  return { items: clamped, adjusted };
+  return { items: clamped, adjusted, adjustments };
 }
 
 export async function POST(request: Request) {
@@ -82,7 +116,17 @@ export async function POST(request: Request) {
     }
 
     // ── Shelf hard-guard + trusted re-pricing ────────────────────────────────
-    const { items: safeItems, adjusted: shelfAdjusted } = clampItems(payload.items);
+    const { items: safeItems, adjusted: shelfAdjusted, adjustments } = clampItems(payload.items);
+    // Merge the client's own trims with the server's — the server's word wins
+    // for the same line, client-only trims are kept so nothing is lost.
+    const merged = new Map<string, OrderAdjustment>();
+    for (const a of payload.adjustments ?? []) {
+      if (a && a.productId) merged.set(`${a.productId}|${a.size}`, { ...a });
+    }
+    for (const a of adjustments) {
+      merged.set(`${a.productId}|${a.size}`, a);
+    }
+    const allAdjustments = [...merged.values()];
     if (safeItems.length === 0) {
       return NextResponse.json(
         { ok: false, message: 'Nothing in this order is still on the shelf.' },
@@ -124,6 +168,7 @@ export async function POST(request: Request) {
         deliveryMethod: delivery,
         paymentMethod: payload.payment ?? 'cod',
         items: JSON.stringify(safeItems),
+        adjustments: allAdjustments.length > 0 ? JSON.stringify(allAdjustments) : null,
         subtotal,
         shipping,
         discount,
@@ -152,6 +197,7 @@ export async function POST(request: Request) {
       eta: etaFor(delivery),
       giftWrap: payload.giftWrap,
       giftNote: payload.giftNote,
+      adjustments: allAdjustments.length > 0 ? allAdjustments : undefined,
     };
 
     return NextResponse.json({ ok: true, order, adjusted: shelfAdjusted });
@@ -170,7 +216,12 @@ export async function GET(request: Request) {
       orderBy: { createdAt: 'desc' },
       take: 20,
     });
-    return NextResponse.json({ orders: rows });
+    return NextResponse.json({
+      orders: rows.map((row) => ({
+        ...row,
+        adjustments: row.adjustments ? JSON.parse(row.adjustments) : null,
+      })),
+    });
   } catch {
     return NextResponse.json({ orders: [] });
   }

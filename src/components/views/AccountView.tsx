@@ -134,7 +134,17 @@ export default function AccountView({ view }: ViewProps) {
                   <Reveal delay={Math.min(i, 4) * 60}>
                     <div className="card-editorial flex flex-col gap-4 p-6 sm:flex-row sm:items-center sm:justify-between">
                       <div>
-                        <p className="font-display text-lg text-charcoal">{order.orderNumber}</p>
+                        <p className="font-display text-lg text-charcoal">
+                          {order.orderNumber}
+                          {order.adjustments && order.adjustments.length > 0 && (
+                            <span
+                              className="ml-2.5 inline-block border border-terracotta/40 bg-terracotta/[0.06] px-1.5 py-0.5 align-middle text-[8px] font-bold uppercase tracking-[0.18em] text-terracotta"
+                              title={t('confirm.adjust.title')}
+                            >
+                              {t('account.adjusted')}
+                            </span>
+                          )}
+                        </p>
                         <p className="mt-1 text-xs text-stone">
                           {dateLabel(order.createdAt)} · {order.items.length} {t('cart.items')}
                         </p>

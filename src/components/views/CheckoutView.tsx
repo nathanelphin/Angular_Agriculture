@@ -16,7 +16,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import type { OrderItem, StoredOrder, ViewProps } from '@/lib/types';
+import type { OrderAdjustment, OrderItem, StoredOrder, ViewProps } from '@/lib/types';
 import { createOrder, fetchProducts } from '@/lib/api';
 import { useCartStore } from '@/lib/stores/cart';
 import { useOrdersStore } from '@/lib/stores/orders';
@@ -230,14 +230,31 @@ export default function CheckoutView({ view }: ViewProps) {
     // told — then the (adjusted) order is placed. The server clamps again.
     const adjusted: typeof lines = [];
     const dropped: typeof lines = [];
+    const clientAdjustments: OrderAdjustment[] = [];
     const clampedLines = lines.flatMap((l) => {
       const shelf = shelfFor(l.product, l.item.size);
       const qty = Math.min(l.item.qty, shelf);
       if (qty <= 0) {
         dropped.push(l);
+        clientAdjustments.push({
+          productId: l.item.productId,
+          name: lang === 'kh' && l.product.nameKh ? l.product.nameKh : l.product.name,
+          size: l.item.size || l.product.unit,
+          requestedQty: l.item.qty,
+          storedQty: 0,
+        });
         return [];
       }
-      if (qty < l.item.qty) adjusted.push(l);
+      if (qty < l.item.qty) {
+        adjusted.push(l);
+        clientAdjustments.push({
+          productId: l.item.productId,
+          name: lang === 'kh' && l.product.nameKh ? l.product.nameKh : l.product.name,
+          size: l.item.size || l.product.unit,
+          requestedQty: l.item.qty,
+          storedQty: qty,
+        });
+      }
       return [{ ...l, item: { ...l.item, qty } }];
     });
 
@@ -289,6 +306,7 @@ export default function CheckoutView({ view }: ViewProps) {
       total: clampedTotal,
       giftWrap,
       giftNote: giftWrap && giftNote.trim() ? giftNote.trim() : undefined,
+      adjustments: clientAdjustments.length > 0 ? clientAdjustments : undefined,
       customer: {
         name: form.name.trim(),
         email: form.email.trim(),

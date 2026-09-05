@@ -159,6 +159,16 @@ export interface OrderItem {
   farmerName: string;
 }
 
+/** A line the shelf trimmed — the order's honest ledger of what was asked
+ *  versus what the shelves actually held. */
+export interface OrderAdjustment {
+  productId: string;
+  name: string;
+  size: string;
+  requestedQty: number;
+  storedQty: number; // 0 = the line was dropped entirely
+}
+
 export interface StoredOrder {
   id: string;
   orderNumber: string; // e.g. SF-2026-0481
@@ -185,6 +195,8 @@ export interface StoredOrder {
   eta: string; // human readable
   giftWrap?: boolean; // hand-tied kraft wrap + story card
   giftNote?: string; // handwritten message
+  /** Lines the shelf trimmed before the order was honoured (server-set). */
+  adjustments?: OrderAdjustment[];
 }
 
 export interface DeliveryMethod {

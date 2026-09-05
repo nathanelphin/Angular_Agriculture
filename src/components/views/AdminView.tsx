@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import {
   ArrowLeft,
   BadgeCheck,
+  BellRing,
   Download,
   HeartHandshake,
   Inbox,
@@ -15,6 +16,7 @@ import {
   PackageSearch,
   RotateCcw,
   ShoppingBag,
+  Sprout,
   Star,
   Trash2,
   Wallet,
@@ -23,11 +25,13 @@ import type { ViewProps } from '@/lib/types';
 import { deleteReview, fetchAdminSummary, fetchProducts } from '@/lib/api';
 import { useLang } from '@/lib/stores/lang';
 import { useRouterStore } from '@/lib/stores/router';
+import { copyTextToClipboard } from '@/lib/clipboard';
 import { formatDateShort } from '@/lib/format-date';
 import { orderStageIndex } from '@/components/checkout/OrderTimeline';
 import { Reveal } from '@/components/shared/Reveal';
 import { StageMeter } from '@/components/shared/StageMeter';
 import { RatingStars } from '@/components/shared/RatingStars';
+import { SeasonCalendar } from '@/components/admin/SeasonCalendar';
 import { formatPrice } from '@/components/shared/ProductCard';
 import { cn } from '@/lib/utils';
 
@@ -158,6 +162,54 @@ export default function AdminView({ view }: ViewProps) {
     .filter((p) => p.stock <= 20)
     .sort((a, b) => a.stock - b.stock)
     .slice(0, 6);
+
+  // ── The waiting book — everyone who asked to hear from a resting harvest ──
+  const waiting = summary?.waiting ?? [];
+
+  const groupEmails = (group: (typeof waiting)[number]) => {
+    const set = new Set<string>([
+      ...group.alerts.map((a) => a.email),
+      ...group.reservations.map((r) => r.email),
+    ]);
+    return [...set];
+  };
+
+  const copyGroupEmails = async (group: (typeof waiting)[number]) => {
+    const emails = groupEmails(group);
+    if (emails.length === 0) return;
+    const ok = await copyTextToClipboard(emails.join(', '));
+    if (ok) toast.success(t('admin.waiting.copied', { n: emails.length }));
+  };
+
+  const exportWaitingCsv = () => {
+    if (waiting.length === 0) return;
+    const header = ['Harvest', 'Kind', 'Email', 'Size', 'Qty', 'Since'];
+    const esc = (value: string | number) => {
+      const s = String(value);
+      return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+    const rows: string[] = [];
+    for (const group of waiting) {
+      const label = productName(group.productId);
+      for (const a of group.alerts) {
+        rows.push([label, 'wake-me', a.email, '', '', a.createdAt].map(esc).join(','));
+      }
+      for (const r of group.reservations) {
+        rows.push([label, 'reservation', r.email, r.sizeLabel, r.qty, r.createdAt].map(esc).join(','));
+      }
+    }
+    // BOM keeps Khmer product names readable in Excel.
+    const csv = `\uFEFF${[header.join(','), ...rows].join('\n')}\n`;
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `sovann-farm-waiting-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success(t('admin.waiting.exported'));
+  };
+
 
   const productName = (productId: string) => {
     const p = products?.find((x) => x.id === productId);
@@ -455,6 +507,129 @@ export default function AdminView({ view }: ViewProps) {
           </section>
         </Reveal>
       </div>
+
+      {/* ── The Year's Harvest — season ledger for the desk ─────────────────── */}
+      {products && products.length > 0 && (
+        <Reveal delay={120} className="mt-4">
+          <SeasonCalendar products={products} />
+        </Reveal>
+      )}
+
+      {/* ── Write to the Waiting — the resting-harvest book ──────────────── */}
+      <Reveal delay={130}>
+        <section className="card-editorial mt-4 p-6 md:p-8" aria-label={t('admin.waiting.title')}>
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <h2 className="eyebrow flex items-center gap-2.5 text-terracotta">
+              <BellRing className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden="true" />
+              {t('admin.waiting.title')}
+            </h2>
+            {waiting.length > 0 && (
+              <div className="flex items-center gap-3">
+                <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-stone">
+                  {waiting.reduce((n, g) => n + g.alerts.length + g.reservations.length, 0)}
+                </span>
+                <button
+                  type="button"
+                  onClick={exportWaitingCsv}
+                  className="flex cursor-pointer items-center gap-1.5 border border-charcoal/15 px-2.5 py-1.5 text-[9px] font-bold uppercase tracking-[0.18em] text-stone transition-all duration-300 hover:border-forest hover:text-forest focus-visible:outline-2 focus-visible:outline-gold"
+                >
+                  <Download className="h-3 w-3" strokeWidth={1.5} aria-hidden="true" />
+                  {t('admin.waiting.export')}
+                </button>
+              </div>
+            )}
+          </div>
+          <p className="mt-3 max-w-xl text-xs leading-relaxed text-stone">
+            {t('admin.waiting.subtitle')}
+          </p>
+
+          {!summary ? (
+            <div className="mt-6 space-y-3" aria-hidden="true">
+              {Array.from({ length: 2 }).map((_, i) => (
+                <div key={i} className="h-16 animate-pulse bg-parchment/70" />
+              ))}
+            </div>
+          ) : waiting.length === 0 ? (
+            <p className="mt-6 text-sm text-stone">{t('admin.waiting.empty')}</p>
+          ) : (
+            <ul className="mt-6 space-y-0">
+              {waiting.map((group) => (
+                <li key={group.productId} className="border-b border-charcoal/8 py-4 last:border-0">
+                  <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+                    <div className="min-w-0">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const p = products?.find((x) => x.id === group.productId);
+                          if (p) navigate({ name: 'product', slug: p.slug });
+                        }}
+                        className="cursor-pointer text-left text-sm font-semibold text-charcoal transition-colors hover:text-forest focus-visible:outline-2 focus-visible:outline-gold"
+                      >
+                        {productName(group.productId)}
+                      </button>
+                      <p
+                        className={cn(
+                          'mt-1 flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-[0.18em]',
+                          group.inSeason ? 'text-gold' : 'text-stone',
+                        )}
+                      >
+                        {group.inSeason ? (
+                          <>
+                            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-gold" aria-hidden="true" />
+                            {t('admin.waiting.inSeason')}
+                          </>
+                        ) : (
+                          <>
+                            <span className="h-1.5 w-1.5 rounded-full bg-stone/50" aria-hidden="true" />
+                            {t('admin.waiting.resting')}
+                          </>
+                        )}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => void copyGroupEmails(group)}
+                      className="flex shrink-0 cursor-pointer items-center gap-1.5 border border-charcoal/15 px-2.5 py-1.5 text-[9px] font-bold uppercase tracking-[0.18em] text-stone transition-all duration-300 hover:border-forest hover:text-forest focus-visible:outline-2 focus-visible:outline-gold"
+                    >
+                      <Mail className="h-3 w-3" strokeWidth={1.5} aria-hidden="true" />
+                      {t('admin.waiting.copy')}
+                    </button>
+                  </div>
+                  <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-1.5">
+                    {group.alerts.length > 0 && (
+                      <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.16em] text-clay">
+                        <BellRing className="h-3 w-3" strokeWidth={1.75} aria-hidden="true" />
+                        {t('admin.waiting.alerts', { n: group.alerts.length })}
+                      </span>
+                    )}
+                    {group.reservations.length > 0 && (
+                      <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.16em] text-forest">
+                        <Sprout className="h-3 w-3" strokeWidth={1.75} aria-hidden="true" />
+                        {t('admin.waiting.reservations', { n: group.reservations.length })}
+                      </span>
+                    )}
+                  </div>
+                  {group.reservations.length > 0 && (
+                    <ul className="mt-2 border-l border-gold/40 pl-3">
+                      {group.reservations.map((r) => (
+                        <li
+                          key={`${r.email}-${r.sizeLabel}`}
+                          className="flex items-baseline justify-between gap-4 py-1"
+                        >
+                          <span className="truncate text-xs text-stone">{r.email}</span>
+                          <span className="shrink-0 text-[10px] font-bold uppercase tracking-[0.14em] tabular-nums text-forest">
+                            {r.sizeLabel} × {r.qty}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      </Reveal>
 
       {/* ── Review moderation ────────────────────────────────────────────────── */}
       <Reveal delay={140}>

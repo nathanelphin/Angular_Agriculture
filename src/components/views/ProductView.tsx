@@ -1,11 +1,11 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { ArrowLeft, ArrowRight, Check, Heart, Leaf, Recycle, ZoomIn } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, Heart, Leaf, Recycle, Sprout, ZoomIn } from 'lucide-react';
 import type { ProvinceId, ViewProps } from '@/lib/types';
-import { fetchFarmers, fetchProduct, fetchProducts } from '@/lib/api';
+import { fetchFarmers, fetchProduct, fetchProducts, reserveHarvest } from '@/lib/api';
 import { useLang } from '@/lib/stores/lang';
 import { useRouterStore } from '@/lib/stores/router';
 import { useCartStore } from '@/lib/stores/cart';
@@ -15,6 +15,7 @@ import { useCompareStore } from '@/lib/stores/compare';
 import { useUIStore } from '@/lib/stores/ui';
 import { useMounted } from '@/lib/hooks';
 import { useSeo } from '@/lib/useSeo';
+import { hasSeason, isInSeason, monthName, nextSeasonMonth } from '@/lib/season';
 import { isSizeLow, isSizeSoldOut, sizeStock, SIZE_LOW_THRESHOLD } from '@/lib/stock';
 import { getCategory } from '@/lib/data/categories';
 import { getProvince, provinceName } from '@/lib/data/provinces';
@@ -38,6 +39,8 @@ import {
 import { cn } from '@/lib/utils';
 
 // ─── ProductView — gallery, craft details, origin story & related harvests ────
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default function ProductView({ view }: ViewProps) {
   const { t, lang } = useLang();
@@ -74,6 +77,15 @@ export default function ProductView({ view }: ViewProps) {
   const [selectedSize, setSelectedSize] = useState('');
   const [qty, setQty] = useState(1);
   const [justAdded, setJustAdded] = useState(false);
+  // Reserve next harvest — the resting-shelf flow. The primary CTA softens
+  // into a two-step reservation: intent → email → a gold held-card.
+  const [reserveOpen, setReserveOpen] = useState(false);
+  const [reserveEmail, setReserveEmail] = useState('');
+  const [reserveInvalid, setReserveInvalid] = useState(false);
+  const [reserving, setReserving] = useState(false);
+  const [reserved, setReserved] = useState<{ qty: number; sizeLabel: string; holds: number } | null>(
+    null,
+  );
   // Sticky mobile buy bar — appears once the main buy box scrolls away.
   const [showStickyBar, setShowStickyBar] = useState(false);
   // The compare tray owns the bottom edge while active — yield to it.
@@ -216,6 +228,10 @@ export default function ProductView({ view }: ViewProps) {
     ? sizeStock(product, selectedSizeObj)
     : product.stock;
   const selectedSizeSoldOut = selectedSizeStock <= 0;
+  // A seasonal harvest that is not being gathered right now rests — its
+  // shelves reopen when the fields gather it again, so the buy box reserves.
+  const resting = hasSeason(product) && !isInSeason(product);
+  const backMonth = resting ? monthName(nextSeasonMonth(product), lang) : '';
   const activeSrc = gallery[Math.min(activeImage, Math.max(gallery.length - 1, 0))]?.src ?? product.image;
   const activeAlt =
     gallery[Math.min(activeImage, Math.max(gallery.length - 1, 0))]?.alt ?? product.name;
@@ -260,6 +276,39 @@ export default function ProductView({ view }: ViewProps) {
     if (timer.current) clearTimeout(timer.current);
     timer.current = setTimeout(() => setJustAdded(false), 1600);
     toast.success(`${name} — ${t('common.added')}`);
+  };
+
+  // A resting harvest reserves instead of shipping — staging a different
+  // size or quantity starts a fresh intent.
+  const restageIntent = () => {
+    setReserved(null);
+    setReserveOpen(false);
+    setReserveInvalid(false);
+  };
+
+  const handleReserve = async (e: FormEvent) => {
+    e.preventDefault();
+    const value = reserveEmail.trim();
+    if (!EMAIL_RE.test(value)) {
+      setReserveInvalid(true);
+      return;
+    }
+    setReserveInvalid(false);
+    setReserving(true);
+    const res = await reserveHarvest({
+      productId: product.id,
+      email: value,
+      sizeLabel: selectedSizeObj?.label ?? '',
+      qty,
+    });
+    setReserving(false);
+    if (res.ok) {
+      setReserved({ qty, sizeLabel: selectedSizeObj?.label ?? '', holds: res.holds ?? 1 });
+      setReserveOpen(false);
+      toast.success(t('product.reserveHeld'));
+    } else {
+      toast.error(res.message ?? t('product.reserveError'));
+    }
   };
 
   const handleWishlist = () => {
@@ -436,6 +485,8 @@ export default function ProductView({ view }: ViewProps) {
                       disabled={soldOut}
                       onClick={() => {
                         setSelectedSize(s.label);
+                        // A different size starts a fresh reservation intent.
+                        setReserved(null);
                         // Keep the quantity honest when the shelf for this
                         // size is tighter than what is already staged.
                         setQty((q) => Math.min(q, Math.max(sizeStock(product, s), 1)));
@@ -486,7 +537,14 @@ export default function ProductView({ view }: ViewProps) {
             <div className="mt-8">
               <p className="eyebrow text-stone">{t('product.quantity')}</p>
               <div className="mt-3 flex flex-wrap items-center gap-5">
-                <QuantityStepper value={qty} onChange={setQty} max={Math.max(selectedSizeStock, 1)} />
+                <QuantityStepper
+                  value={qty}
+                  onChange={(n) => {
+                    setQty(n);
+                    setReserved(null);
+                  }}
+                  max={Math.max(selectedSizeStock, 1)}
+                />
                 {selectedSizeSoldOut ? (
                   <span className="flex items-center gap-2.5 text-xs font-semibold uppercase tracking-[0.18em] text-terracotta">
                     <span className="h-1.5 w-1.5 rounded-full bg-terracotta" aria-hidden="true" />
@@ -506,26 +564,122 @@ export default function ProductView({ view }: ViewProps) {
               </div>
             </div>
 
-            {/* Actions */}
+            {/* Actions — a resting harvest reserves; a live one ships */}
             <div ref={buyBoxRef} className="mt-10 space-y-3">
-              <button
-                type="button"
-                onClick={handleAdd}
-                disabled={selectedSizeSoldOut}
-                className={cn(
-                  'btn-primary h-14 w-full text-xs disabled:cursor-not-allowed disabled:opacity-40',
-                  justAdded && 'bg-gold text-forest-deep',
-                )}
-              >
-                {justAdded ? (
-                  <>
-                    <Check className="h-4 w-4" strokeWidth={2} aria-hidden="true" />
-                    {t('common.added')}
-                  </>
+              {resting ? (
+                reserved ? (
+                  <div className="border border-gold/60 bg-gold/[0.06] p-5" role="status">
+                    <div className="flex items-start gap-3">
+                      <span
+                        className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center border border-gold/70 bg-gold/10"
+                        aria-hidden="true"
+                      >
+                        <Check className="h-3.5 w-3.5 text-forest" strokeWidth={2} />
+                      </span>
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-forest">{t('product.reserveHeld')}</p>
+                        <p className="mt-1 text-xs leading-relaxed text-stone">
+                          {t('product.reserveHeldBody', {
+                            qty: reserved.qty,
+                            size: reserved.sizeLabel,
+                            month: backMonth,
+                          })}
+                        </p>
+                        {reserved.holds > 1 && (
+                          <p className="mt-1.5 text-[10px] font-bold uppercase tracking-[0.16em] text-clay">
+                            {t('product.reserveHolds', { n: reserved.holds })}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ) : reserveOpen ? (
+                  <form
+                    onSubmit={handleReserve}
+                    noValidate
+                    aria-label={t('product.reserve')}
+                    className="border border-charcoal/15 bg-parchment/40 p-5"
+                  >
+                    <p className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] text-terracotta">
+                      <Sprout className="h-3 w-3" strokeWidth={1.75} aria-hidden="true" />
+                      {t('product.reserve')}
+                    </p>
+                    <p className="mt-2 text-xs leading-relaxed text-stone">
+                      {t('product.reserveBody', {
+                        month: backMonth,
+                        qty,
+                        size: selectedSizeObj?.label ?? '',
+                      })}
+                    </p>
+                    <label htmlFor={`reserve-email-${product.id}`} className="sr-only">
+                      {t('product.reserveEmail')}
+                    </label>
+                    <input
+                      id={`reserve-email-${product.id}`}
+                      type="email"
+                      value={reserveEmail}
+                      onChange={(e) => {
+                        setReserveEmail(e.target.value);
+                        setReserveInvalid(false);
+                      }}
+                      placeholder={t('season.notify.placeholder')}
+                      autoComplete="email"
+                      aria-invalid={reserveInvalid}
+                      aria-describedby={reserveInvalid ? `reserve-error-${product.id}` : undefined}
+                      className={cn(
+                        'mt-3 h-11 w-full border bg-transparent px-3 text-xs text-charcoal placeholder:text-stone/60 focus:outline-none transition-colors duration-300',
+                        reserveInvalid
+                          ? 'border-terracotta focus:border-terracotta'
+                          : 'border-charcoal/20 focus:border-forest',
+                      )}
+                    />
+                    {reserveInvalid && (
+                      <p
+                        id={`reserve-error-${product.id}`}
+                        role="alert"
+                        className="mt-2 text-[10px] font-bold uppercase tracking-[0.16em] text-terracotta"
+                      >
+                        {t('season.notify.invalid')}
+                      </p>
+                    )}
+                    <button
+                      type="submit"
+                      disabled={reserving}
+                      className="btn-gold mt-3 h-11 w-full text-[10px] disabled:cursor-wait disabled:opacity-60"
+                    >
+                      {reserving ? '…' : t('product.reserveAction')}
+                    </button>
+                  </form>
                 ) : (
-                  t('common.addToCart')
-                )}
-              </button>
+                  <button
+                    type="button"
+                    onClick={() => setReserveOpen(true)}
+                    className="btn-primary h-14 w-full text-xs"
+                  >
+                    <Sprout className="h-4 w-4" strokeWidth={1.5} aria-hidden="true" />
+                    {t('product.reserve')}
+                  </button>
+                )
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleAdd}
+                  disabled={selectedSizeSoldOut}
+                  className={cn(
+                    'btn-primary h-14 w-full text-xs disabled:cursor-not-allowed disabled:opacity-40',
+                    justAdded && 'bg-gold text-forest-deep',
+                  )}
+                >
+                  {justAdded ? (
+                    <>
+                      <Check className="h-4 w-4" strokeWidth={2} aria-hidden="true" />
+                      {t('common.added')}
+                    </>
+                  ) : (
+                    t('common.addToCart')
+                  )}
+                </button>
+              )}
               <button
                 type="button"
                 onClick={handleWishlist}
@@ -671,24 +825,46 @@ export default function ProductView({ view }: ViewProps) {
                 {selectedSizeObj?.label}
               </p>
             </div>
-            <button
-              type="button"
-              onClick={handleAdd}
-              disabled={selectedSizeSoldOut}
-              className={cn(
-                'btn-primary h-12 shrink-0 px-5 text-[10px] disabled:cursor-not-allowed disabled:opacity-40',
-                justAdded && 'bg-gold text-forest-deep',
-              )}
-            >
-              {justAdded ? (
-                <>
-                  <Check className="h-4 w-4" strokeWidth={2} aria-hidden="true" />
-                  {t('common.added')}
-                </>
-              ) : (
-                t('common.addToCart')
-              )}
-            </button>
+            {resting && !reserved ? (
+              <button
+                type="button"
+                onClick={() => {
+                  buyBoxRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                  setReserveOpen(true);
+                }}
+                className="btn-primary h-12 shrink-0 px-5 text-[10px]"
+              >
+                <Sprout className="h-4 w-4" strokeWidth={1.5} aria-hidden="true" />
+                {t('product.reserve')}
+              </button>
+            ) : resting ? (
+              <span
+                className="flex h-12 shrink-0 items-center gap-2 border border-gold/60 bg-gold/10 px-4 text-[10px] font-bold uppercase tracking-[0.18em] text-forest"
+                role="status"
+              >
+                <Check className="h-4 w-4" strokeWidth={2} aria-hidden="true" />
+                {t('product.reserveHeld')}
+              </span>
+            ) : (
+              <button
+                type="button"
+                onClick={handleAdd}
+                disabled={selectedSizeSoldOut}
+                className={cn(
+                  'btn-primary h-12 shrink-0 px-5 text-[10px] disabled:cursor-not-allowed disabled:opacity-40',
+                  justAdded && 'bg-gold text-forest-deep',
+                )}
+              >
+                {justAdded ? (
+                  <>
+                    <Check className="h-4 w-4" strokeWidth={2} aria-hidden="true" />
+                    {t('common.added')}
+                  </>
+                ) : (
+                  t('common.addToCart')
+                )}
+              </button>
+            )}
           </div>
         </div>
       )}

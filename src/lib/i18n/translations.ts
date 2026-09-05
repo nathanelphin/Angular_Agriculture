@@ -152,6 +152,18 @@ export const translations: Record<Lang, Record<string, string>> = {
     'season.pickedIn': 'Gathered in the fields {range}.',
     'season.captionNow': 'The fields are gathering it right now.',
     'season.chip': 'In season',
+    'season.notify.eyebrow': 'Wake me at harvest',
+    'season.notify.body':
+      'The fields are resting. Leave your email and we\u2019ll write the moment this harvest returns.',
+    'season.notify.placeholder': 'your@email.com',
+    'season.notify.action': 'Tell me',
+    'season.notify.success': 'You\u2019ll hear from the fields.',
+    'season.notify.note': 'We\u2019ll write when {month}\u2019s harvest is gathered.',
+    'season.notify.watchers': '{n} waiting for this harvest',
+    'season.notify.invalid': 'Please enter a valid email address.',
+    'season.notify.error': 'That didn\u2019t take. Please try again.',
+    'season.reserve.eyebrow': 'The fields are resting',
+    'season.reserve.holds': '{n} reservations hold this harvest',
     'shop.clearAll': 'Clear all',
     'shop.apply': 'Show Results',
     'shop.results': 'products',
@@ -326,6 +338,7 @@ export const translations: Record<Lang, Record<string, string>> = {
     'account.status': 'Status',
     'account.addAgain': 'Add Again',
     'account.addAgainDone': '{n} harvests are back in your basket.',
+    'account.adjusted': 'Adjusted',
 
     'footer.allProducts': 'All Products',
     'footer.aboutUs': 'About Us',
@@ -402,6 +415,10 @@ export const translations: Record<Lang, Record<string, string>> = {
     'track.viewReceipt': 'View Full Receipt',
     'account.trackOrder': 'Track',
     'confirm.trackLink': 'Open Live Order Tracking',
+    'confirm.adjust.title': 'Trimmed to the shelf',
+    'confirm.adjust.body':
+      'We asked more of the shelves than they held, so this order was honoured with what was truly there — nothing more was promised.',
+    'confirm.adjust.dropped': 'Removed',
 
     'article.prevStory': 'Previous Story',
     'article.nextStory': 'Next Story',
@@ -435,6 +452,11 @@ export const translations: Record<Lang, Record<string, string>> = {
     'admin.giftWrap': 'Gift wrapped',
     'admin.export': 'Export CSV',
     'admin.exported': '{n} orders exported as CSV',
+    'admin.calendar.title': "The Year's Harvest",
+    'admin.calendar.legend': 'Harvest · Month',
+    'admin.calendar.inSeasonCount': '{n} in season now',
+    'admin.calendar.caption':
+      'Gold marks the months each harvest leaves the fields; the forest band is this month. Year-round staples stay off this ledger. Select a row to open the harvest.',
     'admin.lowStock': 'Low-Stock Watch',
     'admin.stockHealthy': 'Every shelf is full — nothing runs short this week.',
     'admin.left': 'left',
@@ -456,6 +478,30 @@ export const translations: Record<Lang, Record<string, string>> = {
     'admin.gate.hint': 'Demo passphrase: {pass}',
     'admin.gate.welcome': 'The desk is open.',
     'admin.gate.back': 'Back to the shop',
+
+    'product.reserve': 'Reserve next harvest',
+    'product.reserveAction': 'Hold this reservation',
+    'product.reserveBody':
+      'The shelf is resting until {month}. Hold {qty} × {size} now at today\u2019s price — you pay only when the harvest leaves the fields.',
+    'product.reserveHeld': 'Reservation held',
+    'product.reserveHeldBody':
+      'You hold {qty} × {size} of {month}\u2019s harvest at today\u2019s price. We\u2019ll write when it leaves the fields.',
+    'product.reserveHolds': '{n} reservations hold this harvest',
+    'product.reserveError': 'Could not hold that reservation. Please try again.',
+    'product.reserveEmail': 'Email for the reservation',
+
+    'admin.waiting.title': 'Write to the Waiting',
+    'admin.waiting.subtitle':
+      'Everyone who asked to hear from a resting harvest — wake-me notes on top, held reservations beneath.',
+    'admin.waiting.empty': 'No one is waiting yet — resting shelves sleep quietly.',
+    'admin.waiting.alerts': '{n} waiting',
+    'admin.waiting.reservations': '{n} holding',
+    'admin.waiting.inSeason': 'In season — time to write',
+    'admin.waiting.resting': 'Still resting',
+    'admin.waiting.copy': 'Copy emails',
+    'admin.waiting.copied': '{n} addresses copied to your clipboard',
+    'admin.waiting.export': 'Export CSV',
+    'admin.waiting.exported': 'Waiting book exported as CSV',
   },
 
   kh: {
@@ -605,6 +651,18 @@ export const translations: Record<Lang, Record<string, string>> = {
     'season.pickedIn': 'ប្រមូលផលក្នុងស្រែចម្ការរយៈពេល {range}។',
     'season.captionNow': 'ស្រែចម្ការកំពុងប្រមូលផលនៅពេលនេះ។',
     'season.chip': 'កំពុងមានផល',
+    'season.notify.eyebrow': 'ជូនដំណឹងពេលមានផល',
+    'season.notify.body':
+      'ស្រែចម្ការកំពុងសម្រាក។ ទុកអ៊ីមែលរបស់អ្នក ហើយយើងនឹងជូនដំណឹងភ្លាមៗពេលផលនេះត្រឡប់មកវិញ។',
+    'season.notify.placeholder': 'your@email.com',
+    'season.notify.action': 'ជូនដំណឹងខ្ញុំ',
+    'season.notify.success': 'យើងនឹងទាក់ទងអ្នកពេលមានផល។',
+    'season.notify.note': 'យើងនឹងសរសេរជូនពេលផលខែ{month}ត្រូវបានប្រមូល។',
+    'season.notify.watchers': 'មាន {n} នាក់កំពុងរង់ចាំផលនេះ',
+    'season.notify.invalid': 'សូមបញ្ចូលអ៊ីមែលឲ្យបានត្រឹមត្រូវ។',
+    'season.notify.error': 'មិនបានជោគជ័យទេ។ សូមព្យាយាមម្តងទៀត។',
+    'season.reserve.eyebrow': 'ស្រែចម្ការកំពុងសម្រាក',
+    'season.reserve.holds': 'មាន {n} ការកក់រង់ចាំផលនេះ',
     'shop.clearAll': 'សម្អាតទាំងអស់',
     'shop.apply': 'បង្ហាញលទ្ធផល',
     'shop.results': 'ផលិតផល',
@@ -778,6 +836,7 @@ export const translations: Record<Lang, Record<string, string>> = {
     'account.status': 'ស្ថានភាព',
     'account.addAgain': 'បន្ថែមម្តងទៀត',
     'account.addAgainDone': 'ផលដំណំចំនួន {n} ត្រឡប់មករទេះរបស់អ្នកវិញហើយ។',
+    'account.adjusted': 'ត្រូវបានកែ',
 
     'footer.allProducts': 'ផលិតផលទាំងអស់',
     'footer.aboutUs': 'អំពីយើង',
@@ -854,6 +913,10 @@ export const translations: Record<Lang, Record<string, string>> = {
     'track.viewReceipt': 'មើលវិក្កយបត្រពេញលេញ',
     'account.trackOrder': 'តាមដាន',
     'confirm.trackLink': 'បើកការតាមដានផ្ទាល់',
+    'confirm.adjust.title': 'កាត់ចុះត្រឹមធ្នើរ',
+    'confirm.adjust.body':
+      'រទេះរបស់អ្នកសុំលើសពីបរិមាណដែលធ្នើរមាន ដូច្នេះការបញ្ជាទិញត្រូវបានធ្វើតាមតែអ្វីដែលធ្នើរពិតជាមានប៉ុណ្ណោះ — មិនបានសន្យាលើសទេ។',
+    'confirm.adjust.dropped': 'ដកចេញ',
 
     'article.prevStory': 'រឿងរ៉ាវមុន',
     'article.nextStory': 'រឿងរ៉ាវបន្ទាប់',
@@ -887,6 +950,11 @@ export const translations: Record<Lang, Record<string, string>> = {
     'admin.giftWrap': 'ខ្ចប់ជាកាដូ',
     'admin.export': 'នាំចេញ CSV',
     'admin.exported': 'បាននាំចេញការបញ្ជាទិញចំនួន {n} ជាឯកសារ CSV',
+    'admin.calendar.title': 'រដូវផលតាមឆ្នាំ',
+    'admin.calendar.legend': 'ផល · ខែ',
+    'admin.calendar.inSeasonCount': 'កំពុងមានផល {n} ប្រភេទ',
+    'admin.calendar.caption':
+      'ក្រឡាពណ៌មាសសម្គាល់ខែដែលផលនីមួយៗចេញពីស្រែចម្ការ ហើយចង្វាក់ពណ៌បៃតងគឺខែនេះ។ ផលដែលមានពេញឆ្នាំមិនចូលក្នុងតារាងនេះទេ។ ចុចលើជួរដេកដើម្បីបើកមើលផលនោះ។',
     'admin.lowStock': 'តាមដានស្តុកតិច',
     'admin.stockHealthy': 'ធ្នើរទាំងអស់ពេញលើត — គ្មានអ្វីខ្វះក្នុងសប្តាហ៍នេះ។',
     'admin.left': 'នៅសល់',
@@ -908,6 +976,30 @@ export const translations: Record<Lang, Record<string, string>> = {
     'admin.gate.hint': 'ពាក្យសម្ងាត់សាកល្បង៖ {pass}',
     'admin.gate.welcome': 'ផ្ទាំងបើកហើយ។',
     'admin.gate.back': 'ត្រឡប់ទៅហាង',
+
+    'product.reserve': 'កក់រដូវចម្ការបន្ទាប់',
+    'product.reserveAction': 'កក់ស្ទង់នេះ',
+    'product.reserveBody':
+      'ធ្នើរនេះសម្រាករហូតដល់ខែ{month}។ កក់ {qty} × {size} ឥឡូវនេះក្នុងតម្លៃថ្ងៃនេះ — អ្នកបង់ប្រាក់តែពេលផលចេញពីស្រែចម្ការប៉ុណ្ណោះ។',
+    'product.reserveHeld': 'ការកក់ត្រូវបានរក្សាទុក',
+    'product.reserveHeldBody':
+      'អ្នកកក់ {qty} × {size} នៃផលខែ{month} ក្នុងតម្លៃថ្ងៃនេះ។ យើងនឹងសរសេរជូនពេលផលចេញពីស្រែចម្ការ។',
+    'product.reserveHolds': 'មាន {n} ការកក់រង់ចាំផលនេះ',
+    'product.reserveError': 'មិនអាចកក់បានទេ។ សូមព្យាយាមម្តងទៀត។',
+    'product.reserveEmail': 'អ៊ីមែលសម្រាប់ការកក់',
+
+    'admin.waiting.title': 'សរសេរទៅកាន់អ្នករង់ចាំ',
+    'admin.waiting.subtitle':
+      'អ្នកទាំងប៉ុន្មានដែលបានសុំឲ្យជូនដំណឹងពេលផលត្រឡប់មកវិញ — សំបុត្រនៅខាងលើ ការកក់នៅខាងក្រោម។',
+    'admin.waiting.empty': 'មិនមានអ្នករង់ចាំទេ — ធ្នើរសម្រាកស្ងាត់។',
+    'admin.waiting.alerts': '{n} នាក់រង់ចាំ',
+    'admin.waiting.reservations': '{n} ការកក់',
+    'admin.waiting.inSeason': 'កំពុងមានផល — ពេលសរសេរហើយ',
+    'admin.waiting.resting': 'នៅសម្រាកដែរ',
+    'admin.waiting.copy': 'ចម្លងអ៊ីមែល',
+    'admin.waiting.copied': 'ចម្លងអ៊ីមែល {n} បានរួចរាល់',
+    'admin.waiting.export': 'នាំចេញ CSV',
+    'admin.waiting.exported': 'បញ្ជីអ្នករង់ចាំត្រូវបាននាំចេញជា CSV',
   },
 };
 

@@ -29,6 +29,7 @@ model Order {
   deliveryMethod  String
   paymentMethod   String
   items           String // JSON-encoded OrderItem[]
+  adjustments     String? // JSON-encoded OrderAdjustment[] — lines the shelf trimmed
   subtotal        Float
   shipping        Float
   discount        Float
@@ -37,6 +38,33 @@ model Order {
   giftWrap        Boolean @default(false)
   giftNote        String?
   createdAt       DateTime @default(now())
+}
+
+// "Wake me at harvest" — shoppers who asked to be told when a resting
+// harvest returns to the fields. One row per (product, email).
+model HarvestAlert {
+  id        String   @id @default(cuid())
+  productId String // product id, e.g. p-kampot-black-pepper
+  email     String
+  createdAt DateTime @default(now())
+
+  @@unique([productId, email])
+  @@index([productId])
+}
+
+// "Reserve next harvest" — a real hold on a resting harvest: size, quantity
+// and the email to write when the fields gather it again. Reserved at
+// today's price; payment happens only when the harvest leaves the fields.
+model HarvestReservation {
+  id        String   @id @default(cuid())
+  productId String // product id, e.g. p-kampot-black-pepper
+  email     String
+  sizeLabel String // e.g. "250g"
+  qty       Int // units held for this shopper
+  createdAt DateTime @default(now())
+
+  @@unique([productId, email, sizeLabel])
+  @@index([productId])
 }
 
 // Customer reviews persisted from the product page ("Write a Review").
