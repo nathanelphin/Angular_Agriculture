@@ -311,6 +311,18 @@
       rgba(38, 34, 28, 0.045) 4px 6px
     );
   }
+
+  /* Editorial image cast — photographs rest under a warm, slightly muted
+     grade and come fully alive as the card is hovered. The transition is on
+     `filter` only, so SmartImage's load-fade (opacity) is untouched. */
+  .img-editorial {
+    filter: saturate(0.94) sepia(0.06) contrast(1.01) brightness(1.01);
+    transition: filter 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .group:hover .img-editorial,
+  .img-editorial-wrap:hover .img-editorial {
+    filter: saturate(1.03) sepia(0) contrast(1.02) brightness(1);
+  }
 }
 
 /* ─── Print — clean paper receipt (order tracking & confirmation) ────────────── */

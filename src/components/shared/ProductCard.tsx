@@ -10,6 +10,7 @@ import { useWishlistStore } from '@/lib/stores/wishlist';
 import { useCompareStore } from '@/lib/stores/compare';
 import { useRouterStore } from '@/lib/stores/router';
 import { provinceName } from '@/lib/data/provinces';
+import { isInSeason } from '@/lib/season';
 import { SmartImage } from '@/components/shared/SmartImage';
 import { RatingStars } from '@/components/shared/RatingStars';
 import { QuickViewDialog } from '@/components/shared/QuickViewDialog';
@@ -93,9 +94,10 @@ export function ProductCard({ product, priority = false, className }: ProductCar
           alt={`${product.name} — ${provinceName(product.province)}`}
           ratio="portrait"
           priority={priority}
-          // Base SmartImage handles the fade/blur-up transition; only the hover
-          // zoom is added here (transition overrides would break the load fade).
-          imgClassName="group-hover:scale-[1.06]"
+          // Base SmartImage handles the fade/blur-up transition; the hover
+          // zoom rides here, and .img-editorial adds the warm editorial grade
+          // (filter-only transition, so the load fade is untouched).
+          imgClassName="group-hover:scale-[1.06] img-editorial"
         />
         {/* origin ribbon on hover */}
         <div className="pointer-events-none absolute inset-x-0 bottom-0 translate-y-2 bg-gradient-to-t from-forest-deep/70 to-transparent p-4 opacity-0 transition-all duration-500 group-hover:translate-y-0 group-hover:opacity-100">
@@ -120,6 +122,12 @@ export function ProductCard({ product, priority = false, className }: ProductCar
         {product.isNew && (
           <span className="bg-terracotta px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.2em] text-ivory">
             {t('common.new')}
+          </span>
+        )}
+        {isInSeason(product) && (
+          <span className="flex items-center gap-1.5 border border-gold/70 bg-ivory/95 px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.2em] text-forest">
+            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-gold" aria-hidden="true" />
+            {t('season.chip')}
           </span>
         )}
       </div>

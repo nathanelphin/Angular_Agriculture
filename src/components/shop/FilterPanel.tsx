@@ -35,6 +35,8 @@ export interface FilterPanelProps {
   onOrganicChange: (value: boolean) => void;
   sustainableOnly: boolean;
   onSustainableChange: (value: boolean) => void;
+  inSeasonOnly: boolean;
+  onInSeasonChange: (value: boolean) => void;
   activeCount: number;
   onClear: () => void;
   className?: string;
@@ -55,6 +57,8 @@ export function FilterPanel({
   onOrganicChange,
   sustainableOnly,
   onSustainableChange,
+  inSeasonOnly,
+  onInSeasonChange,
   activeCount,
   onClear,
   className,
@@ -219,6 +223,21 @@ export function FilterPanel({
               className="cursor-pointer text-sm text-charcoal/85 transition-colors hover:text-forest"
             >
               {t('shop.sustainable')}
+            </Label>
+          </div>
+          <div className="flex items-center gap-3">
+            <Checkbox
+              id={`${uid}-inseason`}
+              checked={inSeasonOnly}
+              onCheckedChange={(v) => onInSeasonChange(v === true)}
+              className="rounded-none border-charcoal/30 shadow-none data-[state=checked]:border-gold data-[state=checked]:bg-gold"
+            />
+            <Label
+              htmlFor={`${uid}-inseason`}
+              className="flex cursor-pointer items-center gap-2 text-sm text-charcoal/85 transition-colors hover:text-forest"
+            >
+              <span className="h-1.5 w-1.5 rounded-full bg-gold" aria-hidden="true" />
+              {t('shop.inSeason')}
             </Label>
           </div>
         </div>

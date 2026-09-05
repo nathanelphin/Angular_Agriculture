@@ -9,6 +9,7 @@ import { useDebounce } from '@/lib/hooks';
 import { useLang } from '@/lib/stores/lang';
 import { categories } from '@/lib/data/categories';
 import { getProvince, provinces as allProvinces, provinceName } from '@/lib/data/provinces';
+import { isInSeason } from '@/lib/season';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { ProductCard } from '@/components/shared/ProductCard';
 import { Reveal } from '@/components/shared/Reveal';
@@ -38,6 +39,7 @@ export default function ShopView({ view }: ViewProps) {
   const [priceRange, setPriceRange] = useState<PriceRange>('any');
   const [organicOnly, setOrganicOnly] = useState(false);
   const [sustainableOnly, setSustainableOnly] = useState(false);
+  const [inSeasonOnly, setInSeasonOnly] = useState(false);
   const [sortBy, setSortBy] = useState<SortKey>('featured');
   const [drawerOpen, setDrawerOpen] = useState(false);
 
@@ -65,6 +67,7 @@ export default function ShopView({ view }: ViewProps) {
       if (priceRange === 'gt20' && p.price <= 20) return false;
       if (organicOnly && !p.organic) return false;
       if (sustainableOnly && !p.sustainable) return false;
+      if (inSeasonOnly && !isInSeason(p)) return false;
       if (q) {
         const haystack = [
           p.name,
@@ -105,7 +108,7 @@ export default function ShopView({ view }: ViewProps) {
         break;
     }
     return sorted;
-  }, [products, category, province, priceRange, organicOnly, sustainableOnly, debouncedSearch, sortBy]);
+  }, [products, category, province, priceRange, organicOnly, sustainableOnly, inSeasonOnly, debouncedSearch, sortBy]);
 
   const activeCount =
     (category ? 1 : 0) +
@@ -113,6 +116,7 @@ export default function ShopView({ view }: ViewProps) {
     (priceRange !== 'any' ? 1 : 0) +
     (organicOnly ? 1 : 0) +
     (sustainableOnly ? 1 : 0) +
+    (inSeasonOnly ? 1 : 0) +
     (searchText.trim() ? 1 : 0);
 
   const clearAll = () => {
@@ -122,9 +126,12 @@ export default function ShopView({ view }: ViewProps) {
     setPriceRange('any');
     setOrganicOnly(false);
     setSustainableOnly(false);
+    setInSeasonOnly(false);
   };
 
-  const removeChip = (kind: 'category' | 'province' | 'price' | 'organic' | 'sustainable' | 'search') => {
+  const removeChip = (
+    kind: 'category' | 'province' | 'price' | 'organic' | 'sustainable' | 'inseason' | 'search',
+  ) => {
     switch (kind) {
       case 'category':
         setCategory(null);
@@ -140,6 +147,9 @@ export default function ShopView({ view }: ViewProps) {
         break;
       case 'sustainable':
         setSustainableOnly(false);
+        break;
+      case 'inseason':
+        setInSeasonOnly(false);
         break;
       case 'search':
         setSearchText('');
@@ -165,6 +175,7 @@ export default function ShopView({ view }: ViewProps) {
   if (priceRange !== 'any') chips.push({ kind: 'price', label: priceLabel[priceRange] });
   if (organicOnly) chips.push({ kind: 'organic', label: t('common.organic') });
   if (sustainableOnly) chips.push({ kind: 'sustainable', label: t('common.sustainable') });
+  if (inSeasonOnly) chips.push({ kind: 'inseason', label: t('shop.inSeason') });
   if (searchText.trim()) chips.push({ kind: 'search', label: `“${searchText.trim()}”` });
 
   const filterPanel = (
@@ -183,6 +194,8 @@ export default function ShopView({ view }: ViewProps) {
       onOrganicChange={setOrganicOnly}
       sustainableOnly={sustainableOnly}
       onSustainableChange={setSustainableOnly}
+      inSeasonOnly={inSeasonOnly}
+      onInSeasonChange={setInSeasonOnly}
       activeCount={activeCount}
       onClear={clearAll}
     />

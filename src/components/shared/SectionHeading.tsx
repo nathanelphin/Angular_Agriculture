@@ -1,6 +1,6 @@
 'use client';
 
-import type { ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 import { KhmerOrnament } from '@/components/shared/KhmerOrnament';
 
@@ -12,6 +12,43 @@ interface SectionHeadingProps {
   dark?: boolean;
   ornament?: boolean;
   className?: string;
+}
+
+/**
+ * A hairline that draws itself (scaleX 0 → 1) the first time it scrolls into
+ * view — the editorial full stop at the end of an eyebrow.
+ */
+function DrawRule({ className }: { className?: string }) {
+  const ref = useRef<HTMLSpanElement>(null);
+  const [drawn, setDrawn] = useState(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) {
+          setDrawn(true);
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.5 },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <span
+      ref={ref}
+      aria-hidden="true"
+      className={cn(
+        'inline-block h-px w-10 origin-left bg-current opacity-60 transition-transform duration-[900ms] ease-[cubic-bezier(0.22,1,0.36,1)]',
+        drawn ? 'scale-x-100' : 'scale-x-0',
+        className,
+      )}
+    />
+  );
 }
 
 export function SectionHeading({
@@ -39,13 +76,9 @@ export function SectionHeading({
             dark ? 'text-honey' : 'text-terracotta',
           )}
         >
-          {ornament && align === 'left' && (
-            <span className="inline-block h-px w-10 bg-current opacity-60" aria-hidden="true" />
-          )}
+          {ornament && align === 'left' && <DrawRule />}
           <span>{eyebrow}</span>
-          {ornament && align === 'center' && (
-            <span className="inline-block h-px w-10 bg-current opacity-60" aria-hidden="true" />
-          )}
+          {ornament && align === 'center' && <DrawRule />}
         </p>
       )}
       <h2

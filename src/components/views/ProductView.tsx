@@ -28,6 +28,7 @@ import { ShareButtons } from '@/components/shared/ShareButtons';
 import { SmartImage } from '@/components/shared/SmartImage';
 import { OriginChain } from '@/components/product/OriginChain';
 import { ProductReviews } from '@/components/product/ProductReviews';
+import { SeasonLedger } from '@/components/product/SeasonLedger';
 import {
   Accordion,
   AccordionContent,
@@ -404,6 +405,9 @@ export default function ProductView({ view }: ViewProps) {
             <p className="mt-6 max-w-xl text-base leading-relaxed text-stone">
               {product.description}
             </p>
+
+            {/* Harvest window — the months this harvest leaves the fields */}
+            <SeasonLedger product={product} className="mt-6 max-w-xl" />
 
             {/* Share this harvest */}
             <ShareButtons title={name} className="mt-5" tone="light" />

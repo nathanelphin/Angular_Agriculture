@@ -49,6 +49,9 @@ export interface Product {
   description: string;
   story: string; // origin paragraph used on product page
   stock: number;
+  /** Months (1–12) when this harvest is gathered in the fields; omit for
+   *  year-round staples and pantry goods. Drives the Harvest Window ledger. */
+  harvestMonths?: number[];
 }
 
 export interface Farmer {

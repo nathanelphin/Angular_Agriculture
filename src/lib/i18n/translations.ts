@@ -144,6 +144,14 @@ export const translations: Record<Lang, Record<string, string>> = {
     'shop.price': 'Price',
     'shop.organic': 'Organic only',
     'shop.sustainable': 'Sustainable only',
+    'shop.inSeason': 'In season now',
+
+    'season.eyebrow': 'Harvest window',
+    'season.inSeason': 'In season now',
+    'season.resting': 'Resting — back in {month}',
+    'season.pickedIn': 'Gathered in the fields {range}.',
+    'season.captionNow': 'The fields are gathering it right now.',
+    'season.chip': 'In season',
     'shop.clearAll': 'Clear all',
     'shop.apply': 'Show Results',
     'shop.results': 'products',
@@ -263,6 +271,9 @@ export const translations: Record<Lang, Record<string, string>> = {
     'checkout.continue': 'Continue',
     'checkout.place': 'Place Order',
     'checkout.note': 'Prototype — payment is simulated. No money will be charged.',
+    'checkout.trimmed': '{n} basket lines were trimmed to the shelf.',
+    'checkout.allShelfGone': 'Nothing in your basket is still on the shelf — it has been emptied.',
+    'checkout.serverTrimmed': 'The shelf moved — your order was trimmed to what was actually there.',
 
     'field.name': 'Full name',
     'field.email': 'Email address',
@@ -401,6 +412,10 @@ export const translations: Record<Lang, Record<string, string>> = {
 
     'wishlist.compare': 'Compare Saved',
     'wishlist.compareFew': 'Save at least two harvests to compare them.',
+    'wishlist.addAll': 'Add all to basket',
+    'wishlist.addedAll': '{n} harvests are in your basket.',
+    'wishlist.skippedSoldOut': '{n} sold out — skipped',
+    'wishlist.noneAddable': 'Every saved harvest is sold out right now.',
 
     'admin.eyebrow': 'Back of House',
     'admin.title': "The Storekeeper's Desk",
@@ -429,6 +444,18 @@ export const translations: Record<Lang, Record<string, string>> = {
     'admin.delete': 'Remove review',
     'admin.deleted': 'Review removed from the journal wall.',
     'admin.deleteFailed': 'Could not remove that review. Please try again.',
+
+    'admin.gate.eyebrow': 'Employees only',
+    'admin.gate.title': "The Storekeeper's Desk",
+    'admin.gate.body':
+      'This desk reads live orders, revenue and the community journal. It asks for a quiet word before opening.',
+    'admin.gate.label': 'Passphrase',
+    'admin.gate.placeholder': 'Speak the word…',
+    'admin.gate.unlock': 'Unlock the desk',
+    'admin.gate.wrong': "That's not the word.",
+    'admin.gate.hint': 'Demo passphrase: {pass}',
+    'admin.gate.welcome': 'The desk is open.',
+    'admin.gate.back': 'Back to the shop',
   },
 
   kh: {
@@ -570,6 +597,14 @@ export const translations: Record<Lang, Record<string, string>> = {
     'shop.price': 'តម្លៃ',
     'shop.organic': 'ធម្មជាតិប៉ុណ្ណោះ',
     'shop.sustainable': 'ចីរភាពប៉ុណ្ណោះ',
+    'shop.inSeason': 'កំពុងមានផលឥឡូវនេះ',
+
+    'season.eyebrow': 'រដូវចម្ការ',
+    'season.inSeason': 'កំពុងមានផលឥឡូវនេះ',
+    'season.resting': 'សម្រាក — ត្រឡប់មកវិញក្នុងខែ{month}',
+    'season.pickedIn': 'ប្រមូលផលក្នុងស្រែចម្ការរយៈពេល {range}។',
+    'season.captionNow': 'ស្រែចម្ការកំពុងប្រមូលផលនៅពេលនេះ។',
+    'season.chip': 'កំពុងមានផល',
     'shop.clearAll': 'សម្អាតទាំងអស់',
     'shop.apply': 'បង្ហាញលទ្ធផល',
     'shop.results': 'ផលិតផល',
@@ -688,6 +723,9 @@ export const translations: Record<Lang, Record<string, string>> = {
     'checkout.continue': 'បន្ត',
     'checkout.place': 'ដាក់ការបញ្ជាទិញ',
     'checkout.note': 'គំរូ — ការទូទាត់គឺត្រូវបានធ្វើស្របពេល។ គ្មានប្រាក់ត្រូវបានគិត។',
+    'checkout.trimmed': 'មាន {n} ជួរក្នុងរទេះត្រូវបានកាត់ចុះត្រឹមធ្នើរ។',
+    'checkout.allShelfGone': 'គ្មានអ្វីក្នុងរទេះរបស់អ្នកនៅលើធ្នើរទៀតទេ — រទេះត្រូវបានទំនេរហើយ។',
+    'checkout.serverTrimmed': 'ធ្នើរបានផ្លាស់ប្តូរ — ការបញ្ជាទិញរបស់អ្នកត្រូវបានកាត់ចុះតាមដែលមានជាក់ស្តែង។',
 
     'field.name': 'ឈ្មោះពេញ',
     'field.email': 'អ៊ីមែល',
@@ -826,6 +864,10 @@ export const translations: Record<Lang, Record<string, string>> = {
 
     'wishlist.compare': 'ប្រៀបធៀបការរក្សាទុក',
     'wishlist.compareFew': 'សូមរក្សាទុកយ៉ាងតិចពីរផលដំណំ ដើម្បីប្រៀបធៀប។',
+    'wishlist.addAll': 'បន្ថែមទាំងអស់ទៅរទេះ',
+    'wishlist.addedAll': '{n} ផលចម្ការស្ថិតក្នុងរទេះរបស់អ្នក។',
+    'wishlist.skippedSoldOut': '{n} អស់ស្តុក — រំលង',
+    'wishlist.noneAddable': 'ផលចម្ការទាំងអស់ដែលបានរក្សាទុកគឺអស់ស្តុកឥឡូវនេះ។',
 
     'admin.eyebrow': 'កន្លែងក្រោយឆាក',
     'admin.title': 'ផ្ទាំងគ្រប់គ្រងរបស់អ្នកផ្ទះ',
@@ -854,6 +896,18 @@ export const translations: Record<Lang, Record<string, string>> = {
     'admin.delete': 'លុបមតិយោបល់',
     'admin.deleted': 'បានលុបមតិយោបល់ចេញពីជញ្ជាំងទស្សនាវដ្ដី។',
     'admin.deleteFailed': 'មិនអាចលុបមតិយោបល់នេះបានទេ។ សូមព្យាយាមម្តងទៀត។',
+
+    'admin.gate.eyebrow': 'សម្រាប់បុគ្គលិកតែប៉ុណ្ណោះ',
+    'admin.gate.title': 'ផ្ទាំងគ្រប់គ្រងរបស់អ្នកផ្ទះ',
+    'admin.gate.body':
+      'ផ្ទាំងនេះអានការបញ្ជាទិញផ្ទាល់ ចំណូល និងទស្សនាវដ្ដីសាមគ្គី។ វាសុំពាក្យស្ងាត់មួយមុនពេលបើក។',
+    'admin.gate.label': 'ពាក្យសម្ងាត់',
+    'admin.gate.placeholder': 'សូមបញ្ចូលពាក្យសម្ងាត់…',
+    'admin.gate.unlock': 'បើកផ្ទាំង',
+    'admin.gate.wrong': 'ពាក្យនេះមិនត្រឹមត្រូវទេ។',
+    'admin.gate.hint': 'ពាក្យសម្ងាត់សាកល្បង៖ {pass}',
+    'admin.gate.welcome': 'ផ្ទាំងបើកហើយ។',
+    'admin.gate.back': 'ត្រឡប់ទៅហាង',
   },
 };
 

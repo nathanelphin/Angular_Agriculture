@@ -34,6 +34,7 @@ export const products: Product[] = [
     story:
       "Dara Touch tends 8,000 vines on the red basalt slopes of Kampot, where his family grew pepper before the war and began again from a single surviving vine. The vines climb living kapok trees and give nothing for three years — then, each February to May, the berries are picked one by one and sun-dried with no oven, no sulphur and no hurry.",
     stock: 42,
+    harvestMonths: [2, 3, 4, 5], // the vines' own clock — picked February to May
   },
   {
     id: 'p-kampot-white-pepper',
@@ -63,6 +64,7 @@ export const products: Product[] = [
     story:
       "On Dara Touch's farm outside Kep, only fully ripe berries become white pepper — soaked overnight in mountain water, then rubbed and skinned by hand, berry by berry, before a final slow drying to ivory. It is two extra days of work per kilo, and it is the reason this pepper tastes of flowers rather than mere heat.",
     stock: 30,
+    harvestMonths: [2, 3, 4, 5],
   },
   {
     id: 'p-phka-malis-jasmine-rice',
@@ -93,6 +95,7 @@ export const products: Product[] = [
     story:
       "Sokha Chea grows this rice on six hectares beside the Mekong floodplain, where his family has kept seed for three generations. Ducklings patrol the paddies instead of pesticides, the river flood sets the calendar, and the grain is milled in small batches within days of harvest so the fragrance survives the journey to your kitchen.",
     stock: 80,
+    harvestMonths: [11, 12, 1], // one flood-fed harvest a year — Nov to Jan
   },
   {
     id: 'p-organic-brown-rice',
@@ -122,6 +125,7 @@ export const products: Product[] = [
     story:
       "Sokha Chea's fields in Prey Veng are never touched by synthetic chemicals — composted straw, duck patrols and river silt do the work instead. The grain is milled gently in small lots to keep the bran intact, then packed within the week so it reaches you soft and alive.",
     stock: 55,
+    harvestMonths: [11, 12, 1],
   },
   {
     id: 'p-palm-sugar',
@@ -152,6 +156,7 @@ export const products: Product[] = [
     story:
       "Vireak Pong climbs 140 inherited palms before first light to collect sap in bamboo tubes, twice a day, the way his grandfather did. The sap is boiled for three hours over wood fire and poured into palm-leaf moulds by hand — no sulphur, no additives, nothing but tree and fire and patience.",
     stock: 64,
+    harvestMonths: [1, 2, 3, 4], // dry-season tapping, when the sap runs sweet
   },
   {
     id: 'p-roasted-cashews',
@@ -181,6 +186,7 @@ export const products: Product[] = [
     story:
       "Sopheap Try has farmed eight hectares of cashew in Kampong Cham for thirty-one years, picking by hand when the apples turn. The nuts sun-dry on bamboo racks and are roasted the same week, in the village roastery his wife runs, so nothing waits in a warehouse losing its snap.",
     stock: 48,
+    harvestMonths: [2, 3, 4, 5],
   },
   {
     id: 'p-dried-mango',
@@ -239,6 +245,7 @@ export const products: Product[] = [
     story:
       "Malis Chen grafts every Keo Romeat tree on her four-hectare orchard from the same sixty-year-old mother trees her father planted beside the Sangker River. Harvest runs through the dry season, when hot days and cool nights stack the sugar, and the fruit is cut at dawn while the blossom scent is still on the skin.",
     stock: 70,
+    harvestMonths: [3, 4, 5], // dry-season mango, cut at dawn
   },
   {
     id: 'p-dragon-fruit',
@@ -297,6 +304,7 @@ export const products: Product[] = [
     story:
       "Malis Chen's longan trees in Battambang were planted by her grandmother and now stand taller than the drying house. In the cool months the clusters are cut whole, wrapped in banana leaf and sent to market within a day — the way Battambang has always eaten them.",
     stock: 22,
+    harvestMonths: [6, 7, 8, 9], // cut whole through the cool, wet months
   },
   {
     id: 'p-young-coconut',
@@ -355,6 +363,7 @@ export const products: Product[] = [
     story:
       "Rathanak Yim harvests this honey with Bunong elders from wild hives in the community forest, using smoke and patience — never more than twice a year, and never taking the whole comb. What reaches the jar is the forest's own blend of highland blossoms, and a share of every harvest is left behind for the bees.",
     stock: 18,
+    harvestMonths: [1, 2, 3, 4], // the dry-season flows, taken at most twice a year
   },
   {
     id: 'p-mondulkiri-coffee',
@@ -385,6 +394,7 @@ export const products: Product[] = [
     story:
       "Rathanak Yim's three hectares sit beneath old forest canopy in Mondulkiri, where cool nights slow the cherries into sweetness. The crop is hand-picked at full ripeness, hand-pulped with spring water and dried on raised bamboo beds — a small farm's coffee, processed like a treasure.",
     stock: 35,
+    harvestMonths: [11, 12, 1, 2], // cool-month cherry picking under the pines
   },
   {
     id: 'p-golden-harvest-gift-box',

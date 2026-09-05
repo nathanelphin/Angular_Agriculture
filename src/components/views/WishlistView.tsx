@@ -3,11 +3,13 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { Copy, Heart, Scale, Share2 } from 'lucide-react';
+import { Copy, Heart, Scale, Share2, ShoppingBasket } from 'lucide-react';
 import type { Product, ViewProps } from '@/lib/types';
 import { fetchProducts } from '@/lib/api';
+import { sizeStock } from '@/lib/stock';
 import { useWishlistStore } from '@/lib/stores/wishlist';
 import { useCompareStore } from '@/lib/stores/compare';
+import { useCartStore } from '@/lib/stores/cart';
 import { useRouterStore } from '@/lib/stores/router';
 import { useLang } from '@/lib/stores/lang';
 import { useMounted } from '@/lib/hooks';
@@ -22,6 +24,7 @@ export default function WishlistView({ view }: ViewProps) {
   const { t, lang } = useLang();
   const navigate = useRouterStore((s) => s.navigate);
   const ids = useWishlistStore((s) => s.ids);
+  const add = useCartStore((s) => s.add);
   const replaceCompare = useCompareStore((s) => s.replaceAll);
   const mounted = useMounted();
   const { data: products } = useQuery({ queryKey: ['products'], queryFn: fetchProducts });
@@ -78,6 +81,32 @@ export default function WishlistView({ view }: ViewProps) {
     toast.success(`${count} × ${t('compare.add')}`);
   };
 
+  /** One tap — the whole wishlist back in the basket. Sold-out shelves are
+   *  skipped honestly (counted, never silently promised). */
+  const handleAddAll = () => {
+    let added = 0;
+    let skipped = 0;
+    wishlistProducts.forEach((p) => {
+      const first = p.sizes[0];
+      const shelf = first ? sizeStock(p, first) : p.stock;
+      if (shelf <= 0) {
+        skipped += 1;
+        return;
+      }
+      add(p.id, first?.label ?? '', 1);
+      added += 1;
+    });
+    if (added === 0) {
+      toast.info(t('wishlist.noneAddable'));
+      return;
+    }
+    toast.success(
+      skipped > 0
+        ? `${t('wishlist.addedAll', { n: added })} · ${t('wishlist.skippedSoldOut', { n: skipped })}`
+        : t('wishlist.addedAll', { n: added }),
+    );
+  };
+
   return (
     <div className="container-editorial pb-28 pt-14 md:pt-24">
       <Reveal>
@@ -91,6 +120,15 @@ export default function WishlistView({ view }: ViewProps) {
               <p className="text-xs uppercase tracking-[0.28em] text-stone">
                 {wishlistProducts.length} {t('shop.results')}
               </p>
+              <span className="h-4 w-px bg-charcoal/15" aria-hidden="true" />
+              <button
+                type="button"
+                onClick={handleAddAll}
+                className="inline-flex cursor-pointer items-center gap-2 text-[10px] font-bold uppercase tracking-[0.22em] text-forest transition-colors duration-300 hover:text-terracotta focus-visible:outline-2 focus-visible:outline-gold"
+              >
+                <ShoppingBasket className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden="true" />
+                {t('wishlist.addAll')}
+              </button>
               <span className="h-4 w-px bg-charcoal/15" aria-hidden="true" />
               <button
                 type="button"

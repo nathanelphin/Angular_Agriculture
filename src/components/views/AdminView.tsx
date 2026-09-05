@@ -1,13 +1,16 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, type FormEvent, useSyncExternalStore } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import {
+  ArrowLeft,
   BadgeCheck,
   Download,
   HeartHandshake,
   Inbox,
+  KeyRound,
+  Lock,
   Mail,
   PackageSearch,
   RotateCcw,
@@ -31,12 +34,56 @@ import { cn } from '@/lib/utils';
 // ─── AdminView — the Storekeeper's Desk (demo back-of-house, #/admin) ─────────
 // A light-weight operations surface: commerce vitals, recent orders,
 // low-stock watch and community-review moderation (real DELETE API).
+// A quiet passphrase gate (session-scoped) keeps the desk out of casual reach.
+
+const DESK_PASSPHRASE = 'harvest2026';
+const DESK_KEY_STORAGE = 'sovann-desk-unlocked';
+
+/** sessionStorage is an external system — subscribe so the gate re-reads it. */
+const subscribeDeskStorage = (onChange: () => void) => {
+  window.addEventListener('storage', onChange);
+  return () => window.removeEventListener('storage', onChange);
+};
 
 export default function AdminView({ view }: ViewProps) {
   void view;
   const { t, lang } = useLang();
   const navigate = useRouterStore((s) => s.navigate);
   const queryClient = useQueryClient();
+
+  // ── Passphrase gate (session-scoped; demo-honest with a visible hint) ──
+  const [justUnlocked, setJustUnlocked] = useState(false);
+  const [passphrase, setPassphrase] = useState('');
+  const [keyError, setKeyError] = useState(false);
+  const storedUnlocked = useSyncExternalStore(
+    subscribeDeskStorage,
+    () => {
+      try {
+        return sessionStorage.getItem(DESK_KEY_STORAGE) === '1';
+      } catch {
+        return false;
+      }
+    },
+    () => false, // server snapshot — the gate renders first, then hydrates
+  );
+  const unlocked = justUnlocked || storedUnlocked;
+
+  const unlockDesk = (e: FormEvent) => {
+    e.preventDefault();
+    if (passphrase.trim().toLowerCase() === DESK_PASSPHRASE) {
+      try {
+        sessionStorage.setItem(DESK_KEY_STORAGE, '1');
+      } catch {
+        /* private mode — the gate simply won't persist for the session */
+      }
+      setKeyError(false);
+      setJustUnlocked(true);
+      toast.success(t('admin.gate.welcome'));
+    } else {
+      setKeyError(true);
+      toast.error(t('admin.gate.wrong'));
+    }
+  };
 
   const { data: summary } = useQuery({ queryKey: ['admin-summary'], queryFn: fetchAdminSummary });
   const { data: products } = useQuery({ queryKey: ['products'], queryFn: fetchProducts });
@@ -163,6 +210,74 @@ export default function AdminView({ view }: ViewProps) {
         },
       ]
     : Array.from({ length: 4 }).map((_, i) => ({ key: `skeleton-${i}` }));
+
+  // ── Gate render ──────────────────────────────────────────────────────────
+  if (!unlocked) {
+    return (
+      <div className="flex min-h-[calc(100vh-8rem)] items-center justify-center bg-forest-deep px-6 py-20 text-ivory">
+        <div className="w-full max-w-md text-center">
+          <span className="mx-auto flex h-14 w-14 items-center justify-center border border-ivory/20">
+            <Lock className="h-6 w-6 text-honey" strokeWidth={1.25} aria-hidden="true" />
+          </span>
+          <p className="eyebrow mt-8 justify-center text-honey">{t('admin.gate.eyebrow')}</p>
+          <h1 className="mt-5 font-display text-4xl leading-tight tracking-tight md:text-5xl">
+            {t('admin.gate.title')}
+          </h1>
+          <p className="mx-auto mt-4 max-w-sm text-sm leading-relaxed text-ivory/70">
+            {t('admin.gate.body')}
+          </p>
+
+          <form onSubmit={unlockDesk} className="mt-8 space-y-3" aria-label={t('admin.gate.title')}>
+            <label htmlFor="desk-passphrase" className="sr-only">
+              {t('admin.gate.label')}
+            </label>
+            <div className="relative">
+              <KeyRound
+                className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-ivory/40"
+                strokeWidth={1.5}
+                aria-hidden="true"
+              />
+              <input
+                id="desk-passphrase"
+                type="password"
+                value={passphrase}
+                onChange={(e) => {
+                  setPassphrase(e.target.value);
+                  setKeyError(false);
+                }}
+                placeholder={t('admin.gate.placeholder')}
+                autoComplete="off"
+                aria-invalid={keyError}
+                aria-describedby={keyError ? 'desk-key-error' : undefined}
+                className="h-12 w-full border border-ivory/25 bg-transparent pl-11 pr-4 text-sm tracking-[0.08em] text-ivory placeholder:text-ivory/35 focus:border-honey focus:outline-none"
+              />
+            </div>
+            {keyError && (
+              <p id="desk-key-error" role="alert" className="text-xs font-semibold uppercase tracking-[0.18em] text-terracotta">
+                {t('admin.gate.wrong')}
+              </p>
+            )}
+            <button type="submit" className="btn-gold h-12 w-full text-[11px]">
+              {t('admin.gate.unlock')}
+            </button>
+          </form>
+
+          <p className="mt-5 text-xs text-ivory/50">
+            {t('admin.gate.hint', { pass: DESK_PASSPHRASE })}
+          </p>
+
+          <button
+            type="button"
+            onClick={() => navigate({ name: 'home' })}
+            className="mt-8 inline-flex cursor-pointer items-center gap-2 text-[10px] font-bold uppercase tracking-[0.22em] text-ivory/60 underline decoration-ivory/30 underline-offset-4 transition-colors hover:text-ivory focus-visible:outline-2 focus-visible:outline-gold"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden="true" />
+            {t('admin.gate.back')}
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container-editorial pb-28 pt-14 md:pt-24">

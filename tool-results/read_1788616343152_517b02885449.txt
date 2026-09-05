@@ -1,0 +1,753 @@
+     1→'use client';
+     2→
+     3→import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react';
+     4→import { useQuery } from '@tanstack/react-query';
+     5→import {
+     6→  ArrowLeft,
+     7→  Banknote,
+     8→  Building2,
+     9→  Check,
+    10→  CreditCard,
+    11→  Info,
+    12→  Landmark,
+    13→  Loader2,
+    14→  Lock,
+    15→  Smartphone,
+    16→  type LucideIcon,
+    17→} from 'lucide-react';
+    18→import { toast } from 'sonner';
+    19→import type { OrderItem, StoredOrder, ViewProps } from '@/lib/types';
+    20→import { createOrder, fetchProducts } from '@/lib/api';
+    21→import { useCartStore } from '@/lib/stores/cart';
+    22→import { useOrdersStore } from '@/lib/stores/orders';
+    23→import { useRouterStore } from '@/lib/stores/router';
+    24→import { useLang } from '@/lib/stores/lang';
+    25→import { useMounted } from '@/lib/hooks';
+    26→import { provinces } from '@/lib/data/provinces';
+    27→import { findPromo } from '@/components/checkout/totals';
+    28→import { shelfFor } from '@/lib/stock';
+    29→import { Label } from '@/components/ui/label';
+    30→import { Textarea } from '@/components/ui/textarea';
+    31→import {
+    32→  Select,
+    33→  SelectContent,
+    34→  SelectItem,
+    35→  SelectTrigger,
+    36→  SelectValue,
+    37→} from '@/components/ui/select';
+    38→import { Reveal } from '@/components/shared/Reveal';
+    39→import { EmptyState } from '@/components/shared/EmptyState';
+    40→import { formatPrice } from '@/components/shared/ProductCard';
+    41→import { CheckoutStepper } from '@/components/checkout/CheckoutStepper';
+    42→import { OrderSummary, type OrderSummaryItem } from '@/components/checkout/OrderSummary';
+    43→import {
+    44→  etaFor,
+    45→  GIFT_WRAP_FEE,
+    46→  harvestDiscountFor,
+    47→  shippingFor,
+    48→  type DeliveryId,
+    49→  type PaymentId,
+    50→} from '@/components/checkout/totals';
+    51→import { cn } from '@/lib/utils';
+    52→
+    53→const PROVINCE_OPTIONS = [
+    54→  'Phnom Penh',
+    55→  ...provinces.map((p) => p.name),
+    56→  'Kandal',
+    57→  'Koh Kong',
+    58→];
+    59→
+    60→const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    61→
+    62→type ErrorKey = 'name' | 'email' | 'phone' | 'address';
+    63→type Errors = Partial<Record<ErrorKey, string>>;
+    64→
+    65→interface CheckoutForm {
+    66→  name: string;
+    67→  email: string;
+    68→  phone: string;
+    69→  address: string;
+    70→  province: string;
+    71→  district: string;
+    72→  instructions: string;
+    73→}
+    74→
+    75→const INITIAL_FORM: CheckoutForm = {
+    76→  name: '',
+    77→  email: '',
+    78→  phone: '',
+    79→  address: '',
+    80→  province: 'Phnom Penh',
+    81→  district: '',
+    82→  instructions: '',
+    83→};
+    84→
+    85→/** Labelled field wrapper with inline editorial error. */
+    86→function Field({
+    87→  label,
+    88→  htmlFor,
+    89→  required = false,
+    90→  error,
+    91→  className,
+    92→  children,
+    93→}: {
+    94→  label: string;
+    95→  htmlFor: string;
+    96→  required?: boolean;
+    97→  error?: string;
+    98→  className?: string;
+    99→  children: ReactNode;
+   100→}) {
+   101→  return (
+   102→    <div className={className}>
+   103→      <Label
+   104→        htmlFor={htmlFor}
+   105→        className="text-xs font-semibold uppercase tracking-[0.18em] text-stone"
+   106→      >
+   107→        {label}
+   108→        {required && (
+   109→          <span className="text-terracotta" aria-hidden="true">
+   110→            {' '}*
+   111→          </span>
+   112→        )}
+   113→      </Label>
+   114→      <div className="mt-2">{children}</div>
+   115→      {error && (
+   116→        <p role="alert" className="mt-1.5 text-xs text-terracotta">
+   117→          {error}
+   118→        </p>
+   119→      )}
+   120→    </div>
+   121→  );
+   122→}
+   123→
+   124→export default function CheckoutView({ view }: ViewProps) {
+   125→  void view;
+   126→  const { t, lang } = useLang();
+   127→  const navigate = useRouterStore((s) => s.navigate);
+   128→  const items = useCartStore((s) => s.items);
+   129→  const clearCart = useCartStore((s) => s.clear);
+   130→  const promoCode = useCartStore((s) => s.promoCode);
+   131→  const addOrder = useOrdersStore((s) => s.add);
+   132→  const mounted = useMounted();
+   133→  const { data: products } = useQuery({
+   134→    queryKey: ['products'],
+   135→    queryFn: fetchProducts,
+   136→  });
+   137→
+   138→  const tt = (en: string, kh: string) => (lang === 'kh' ? kh : en);
+   139→
+   140→  const [step, setStep] = useState<1 | 2 | 3>(1);
+   141→  const [form, setForm] = useState<CheckoutForm>(INITIAL_FORM);
+   142→  const [errors, setErrors] = useState<Errors>({});
+   143→  const [delivery, setDelivery] = useState<DeliveryId>('standard');
+   144→  const [payment, setPayment] = useState<PaymentId>('card');
+   145→  const [giftWrap, setGiftWrap] = useState(false);
+   146→  const [giftNote, setGiftNote] = useState('');
+   147→  const [placing, setPlacing] = useState(false);
+   148→
+   149→  // Join cart lines with the catalogue for pricing + order snapshot.
+   150→  const lines = useMemo(
+   151→    () =>
+   152→      items.flatMap((item) => {
+   153→        const product = products?.find((p) => p.id === item.productId);
+   154→        if (!product) return [];
+   155→        const unitPrice =
+   156→          product.sizes.find((s) => s.label === item.size)?.price ?? product.price;
+   157→        return [{ item, product, unitPrice }];
+   158→      }),
+   159→    [items, products],
+   160→  );
+   161→
+   162→  const subtotal = lines.reduce((acc, l) => acc + l.unitPrice * l.item.qty, 0);
+   163→  const promo = promoCode ? findPromo(promoCode) : undefined;
+   164→  const promoOk = Boolean(promo && subtotal >= promo.minSubtotal);
+   165→  const shipping = shippingFor(delivery, subtotal, promoOk ? promo : undefined);
+   166→  const discount = harvestDiscountFor(subtotal);
+   167→  const giftFee = giftWrap ? GIFT_WRAP_FEE : 0;
+   168→  const promoDiscount = promoOk
+   169→    ? promo!.kind === 'percent'
+   170→      ? Math.round(subtotal * (promo!.value / 100) * 100) / 100
+   171→      : promo!.kind === 'amount'
+   172→        ? promo!.value
+   173→        : 0
+   174→    : 0;
+   175→  const total = subtotal + shipping + giftFee - discount - promoDiscount;
+   176→
+   177→  const summaryItems: OrderSummaryItem[] = lines.map(({ item, product, unitPrice }) => ({
+   178→    key: `${item.productId}-${item.size}`,
+   179→    name: lang === 'kh' && product.nameKh ? product.nameKh : product.name,
+   180→    size: item.size || product.unit,
+   181→    qty: item.qty,
+   182→    unitPrice,
+   183→    image: product.image,
+   184→    shelf: shelfFor(product, item.size),
+   185→  }));
+   186→
+   187→  // Calm scroll to top when the shopper advances between steps.
+   188→  useEffect(() => {
+   189→    window.scrollTo({ top: 0, behavior: 'smooth' });
+   190→  }, [step]);
+   191→
+   192→  const setField = (key: keyof CheckoutForm, value: string) => {
+   193→    setForm((f) => ({ ...f, [key]: value }));
+   194→    setErrors((prev) => {
+   195→      if (!(key in prev)) return prev;
+   196→      const next = { ...prev };
+   197→      delete next[key as ErrorKey];
+   198→      return next;
+   199→    });
+   200→  };
+   201→
+   202→  const validateInformation = (): boolean => {
+   203→    const next: Errors = {};
+   204→    if (!form.name.trim())
+   205→      next.name = tt('Please enter your full name.', 'សូមបញ្ចូលឈ្មោះពេញរបស់អ្នក។');
+   206→    if (!form.email.trim())
+   207→      next.email = tt('Please enter your email address.', 'សូមបញ្ចូលអ៊ីមែលរបស់អ្នក។');
+   208→    else if (!EMAIL_RE.test(form.email.trim()))
+   209→      next.email = tt(
+   210→        'That email address doesn\u2019t look right.',
+   211→        'អ៊ីមែលនេះមិនត្រឹមត្រូវទេ។',
+   212→      );
+   213→    if (!form.phone.trim())
+   214→      next.phone = tt('Please enter your phone number.', 'សូមបញ្ចូលលេខទូរស័ព្ទរបស់អ្នក។');
+   215→    if (!form.address.trim())
+   216→      next.address = tt('Please enter your street address.', 'សូមបញ្ចូលអាសយដ្ឋានរបស់អ្នក។');
+   217→    setErrors(next);
+   218→    return Object.keys(next).length === 0;
+   219→  };
+   220→
+   221→  const placeOrder = async () => {
+   222→    if (placing || lines.length === 0) return;
+   223→    setPlacing(true);
+   224→
+   225→    const orderItems: OrderItem[] = lines.map(({ item, product, unitPrice }) => ({
+   226→      productId: product.id,
+   227→      slug: product.slug,
+   228→      name: lang === 'kh' && product.nameKh ? product.nameKh : product.name,
+   229→      size: item.size || product.unit,
+   230→      qty: item.qty,
+   231→      unitPrice,
+   232→      image: product.image,
+   233→      farmerName: product.farmerName,
+   234→    }));
+   235→
+   236→    const payload: Omit<StoredOrder, 'id' | 'orderNumber' | 'createdAt'> = {
+   237→      items: orderItems,
+   238→      subtotal,
+   239→      shipping,
+   240→      discount,
+   241→      promoCode: promoOk ? promo!.code : undefined,
+   242→      promoDiscount: promoOk && promoDiscount > 0 ? promoDiscount : undefined,
+   243→      total,
+   244→      giftWrap,
+   245→      giftNote: giftWrap && giftNote.trim() ? giftNote.trim() : undefined,
+   246→      customer: {
+   247→        name: form.name.trim(),
+   248→        email: form.email.trim(),
+   249→        phone: form.phone.trim(),
+   250→        address: form.address.trim(),
+   251→        province: form.province,
+   252→        district: form.district.trim() || undefined,
+   253→        instructions: form.instructions.trim() || undefined,
+   254→      },
+   255→      delivery,
+   256→      payment,
+   257→      farmersSupported: new Set(orderItems.map((i) => i.farmerName)).size,
+   258→      eta: etaFor(delivery),
+   259→    };
+   260→
+   261→    try {
+   262→      const res = await createOrder(payload);
+   263→      if (res.ok && res.order) {
+   264→        addOrder(res.order);
+   265→        clearCart();
+   266→        toast.success(t('confirm.title'));
+   267→        navigate({ name: 'confirmation', orderId: res.order.id });
+   268→      } else {
+   269→        setPlacing(false);
+   270→        toast.error(
+   271→          tt(
+   272→            'Order failed. Please try again.',
+   273→            'ការបញ្ជាទិញមិនបានជោគជ័យទេ។ សូមព្យាយាមម្តងទៀត។',
+   274→          ),
+   275→        );
+   276→      }
+   277→    } catch {
+   278→      setPlacing(false);
+   279→      toast.error(
+   280→        tt('Order failed. Please try again.', 'ការបញ្ជាទិញមិនបានជោគជ័យទេ។ សូមព្យាយាមម្តងទៀត។'),
+   281→      );
+   282→    }
+   283→  };
+   284→
+   285→  const handleSubmit = (e: FormEvent) => {
+   286→    e.preventDefault();
+   287→    if (step === 1) {
+   288→      if (validateInformation()) setStep(2);
+   289→      return;
+   290→    }
+   291→    if (step === 2) {
+   292→      setStep(3);
+   293→      return;
+   294→    }
+   295→    void placeOrder();
+   296→  };
+   297→
+   298→  const goBack = () => {
+   299→    if (step === 1) navigate({ name: 'cart' });
+   300→    else setStep(step === 2 ? 1 : 2);
+   301→  };
+   302→
+   303→  // ── Guards ────────────────────────────────────────────────────────────────
+   304→  const cartUnavailable =
+   305→    mounted &&
+   306→    !placing &&
+   307→    (items.length === 0 || (Boolean(products) && lines.length === 0));
+   308→
+   309→  if (cartUnavailable) {
+   310→    return (
+   311→      <div className="container-editorial">
+   312→        <EmptyState
+   313→          title={items.length === 0 ? t('cart.empty') : tt('Your basket is no longer available.', 'រទេះរបស់អ្នកលែងមានទំនិញហើយ។')}
+   314→          description={t('cart.emptyDesc')}
+   315→          action={
+   316→            <button
+   317→              type="button"
+   318→              className="btn-primary"
+   319→              onClick={() => navigate({ name: 'shop' })}
+   320→            >
+   321→              {t('cart.start')}
+   322→            </button>
+   323→          }
+   324→        />
+   325→      </div>
+   326→    );
+   327→  }
+   328→
+   329→  const deliveryMethods: { id: DeliveryId; name: string; desc: string; fee: number }[] = [
+   330→    {
+   331→      id: 'standard',
+   332→      name: t('delivery.standard'),
+   333→      desc: t('delivery.standard.desc'),
+   334→      fee: shippingFor('standard', subtotal, promoOk ? promo : undefined),
+   335→    },
+   336→    {
+   337→      id: 'express',
+   338→      name: t('delivery.express'),
+   339→      desc: t('delivery.express.desc'),
+   340→      fee: shippingFor('express', subtotal, promoOk ? promo : undefined),
+   341→    },
+   342→    {
+   343→      id: 'pickup',
+   344→      name: t('delivery.pickup'),
+   345→      desc: t('delivery.pickup.desc'),
+   346→      fee: 0,
+   347→    },
+   348→  ];
+   349→
+   350→  const paymentMethods: { id: PaymentId; name: string; icon: LucideIcon }[] = [
+   351→    { id: 'card', name: t('payment.card'), icon: CreditCard },
+   352→    { id: 'aba', name: t('payment.aba'), icon: Landmark },
+   353→    { id: 'acleda', name: t('payment.acleda'), icon: Building2 },
+   354→    { id: 'wing', name: t('payment.wing'), icon: Smartphone },
+   355→    { id: 'cod', name: t('payment.cod'), icon: Banknote },
+   356→  ];
+   357→
+   358→  const stepTitles = [t('checkout.step.information'), t('checkout.step.delivery'), t('checkout.step.payment')];
+   359→
+   360→  return (
+   361→    <div className="pb-28">
+   362→      {/* ── Header ─────────────────────────────────────────────────────────── */}
+   363→      <header className="container-editorial pt-14 md:pt-20">
+   364→        <Reveal>
+   365→          <p className="eyebrow flex items-center gap-3 text-terracotta">
+   366→            <Lock className="h-3.5 w-3.5" strokeWidth={1.75} />
+   367→            Secure Checkout
+   368→          </p>
+   369→          <h1 className="mt-5 font-display text-4xl leading-[1.05] text-charcoal md:text-6xl">
+   370→            {t('checkout.title')}
+   371→          </h1>
+   372→        </Reveal>
+   373→        <CheckoutStepper
+   374→          steps={stepTitles}
+   375→          current={step}
+   376→          onStepClick={(s) => {
+   377→            if (s < step) setStep(s as 1 | 2 | 3);
+   378→          }}
+   379→          className="mt-10 max-w-xl"
+   380→        />
+   381→      </header>
+   382→
+   383→      <div className="container-editorial mt-12 grid gap-12 lg:grid-cols-[1fr_380px] lg:gap-16">
+   384→        {/* ── Step card ──────────────────────────────────────────────────────── */}
+   385→        <Reveal>
+   386→          <form noValidate onSubmit={handleSubmit}>
+   387→            <div className="card-editorial p-6 md:p-10">
+   388→              <p className="eyebrow text-terracotta">
+   389→                {tt('Step', 'ជំហាន')} 0{step} / 03
+   390→              </p>
+   391→              <h2 className="mt-3 font-display text-3xl text-charcoal md:text-4xl">
+   392→                {stepTitles[step - 1]}
+   393→              </h2>
+   394→
+   395→              {/* ── STEP 1 · INFORMATION ── */}
+   396→              {step === 1 && (
+   397→                <div className="mt-9 grid gap-5 sm:grid-cols-2">
+   398→                  <Field label={t('field.name')} htmlFor="co-name" required error={errors.name}>
+   399→                    <input
+   400→                      id="co-name"
+   401→                      autoComplete="name"
+   402→                      className="input-editorial"
+   403→                      value={form.name}
+   404→                      onChange={(e) => setField('name', e.target.value)}
+   405→                      aria-invalid={Boolean(errors.name)}
+   406→                    />
+   407→                  </Field>
+   408→                  <Field label={t('field.email')} htmlFor="co-email" required error={errors.email}>
+   409→                    <input
+   410→                      id="co-email"
+   411→                      type="email"
+   412→                      autoComplete="email"
+   413→                      className="input-editorial"
+   414→                      value={form.email}
+   415→                      onChange={(e) => setField('email', e.target.value)}
+   416→                      aria-invalid={Boolean(errors.email)}
+   417→                    />
+   418→                  </Field>
+   419→                  <Field label={t('field.phone')} htmlFor="co-phone" required error={errors.phone}>
+   420→                    <input
+   421→                      id="co-phone"
+   422→                      type="tel"
+   423→                      autoComplete="tel"
+   424→                      className="input-editorial"
+   425→                      value={form.phone}
+   426→                      onChange={(e) => setField('phone', e.target.value)}
+   427→                      aria-invalid={Boolean(errors.phone)}
+   428→                    />
+   429→                  </Field>
+   430→                  <Field label={t('field.district')} htmlFor="co-district">
+   431→                    <input
+   432→                      id="co-district"
+   433→                      autoComplete="address-level2"
+   434→                      className="input-editorial"
+   435→                      value={form.district}
+   436→                      onChange={(e) => setField('district', e.target.value)}
+   437→                    />
+   438→                  </Field>
+   439→                  <Field label={t('field.address')} htmlFor="co-address" required error={errors.address} className="sm:col-span-2">
+   440→                    <input
+   441→                      id="co-address"
+   442→                      autoComplete="street-address"
+   443→                      className="input-editorial"
+   444→                      value={form.address}
+   445→                      onChange={(e) => setField('address', e.target.value)}
+   446→                      aria-invalid={Boolean(errors.address)}
+   447→                    />
+   448→                  </Field>
+   449→                  <Field label={t('field.province')} htmlFor="co-province">
+   450→                    <Select value={form.province} onValueChange={(v) => setField('province', v)}>
+   451→                      <SelectTrigger
+   452→                        id="co-province"
+   453→                        aria-label={t('field.province')}
+   454→                        className="input-editorial h-12 w-full justify-between"
+   455→                      >
+   456→                        <SelectValue placeholder={t('field.province')} />
+   457→                      </SelectTrigger>
+   458→                      <SelectContent className="rounded-none border-charcoal/15">
+   459→                        {PROVINCE_OPTIONS.map((name) => (
+   460→                          <SelectItem key={name} value={name} className="rounded-none">
+   461→                            {name}
+   462→                          </SelectItem>
+   463→                        ))}
+   464→                      </SelectContent>
+   465→                    </Select>
+   466→                  </Field>
+   467→                  <Field label={t('field.instructions')} htmlFor="co-instructions" className="sm:col-span-2">
+   468→                    <Textarea
+   469→                      id="co-instructions"
+   470→                      rows={3}
+   471→                      className="input-editorial h-24 resize-none py-3 leading-relaxed"
+   472→                      value={form.instructions}
+   473→                      onChange={(e) => setField('instructions', e.target.value)}
+   474→                    />
+   475→                  </Field>
+   476→                </div>
+   477→              )}
+   478→
+   479→              {/* ── STEP 2 · DELIVERY ── */}
+   480→              {step === 2 && (
+   481→                <fieldset className="mt-9">
+   482→                  <legend className="sr-only">{t('checkout.step.delivery')}</legend>
+   483→                  <div className="space-y-3">
+   484→                    {deliveryMethods.map((m) => {
+   485→                      const selected = delivery === m.id;
+   486→                      return (
+   487→                        <button
+   488→                          type="button"
+   489→                          key={m.id}
+   490→                          onClick={() => setDelivery(m.id)}
+   491→                          aria-pressed={selected}
+   492→                          className={cn(
+   493→                            'flex w-full items-center justify-between gap-4 border p-5 text-left transition-colors duration-300',
+   494→                            selected
+   495→                              ? 'border-forest bg-parchment/50'
+   496→                              : 'border-charcoal/15 bg-transparent hover:border-charcoal/30',
+   497→                          )}
+   498→                        >
+   499→                          <span>
+   500→                            <span className="block text-sm font-bold uppercase tracking-[0.14em] text-charcoal">
+   501→                              {m.name}
+   502→                            </span>
+   503→                            <span className="mt-1 block text-xs text-stone">{m.desc}</span>
+   504→                          </span>
+   505→                          <span className="flex shrink-0 items-center gap-4">
+   506→                            <span
+   507→                              className={cn(
+   508→                                'text-sm font-semibold tabular-nums',
+   509→                                m.fee === 0 ? 'text-terracotta' : 'text-charcoal',
+   510→                              )}
+   511→                            >
+   512→                              {m.fee === 0 ? t('cart.free') : formatPrice(m.fee)}
+   513→                            </span>
+   514→                            <span
+   515→                              aria-hidden="true"
+   516→                              className={cn(
+   517→                                'flex h-5 w-5 items-center justify-center border transition-colors duration-300',
+   518→                                selected
+   519→                                  ? 'border-forest bg-forest text-ivory'
+   520→                                  : 'border-charcoal/25 text-transparent',
+   521→                              )}
+   522→                            >
+   523→                              <Check className="h-3 w-3" strokeWidth={3} />
+   524→                            </span>
+   525→                          </span>
+   526→                        </button>
+   527→                      );
+   528→                    })}
+   529→                  </div>
+   530→
+   531→                  {/* Gift options */}
+   532→                  <div
+   533→                    className={cn(
+   534→                      'mt-8 border p-5 transition-colors duration-300',
+   535→                      giftWrap ? 'border-gold/60 bg-gold/5' : 'border-charcoal/15',
+   536→                    )}
+   537→                  >
+   538→                    <label className="flex cursor-pointer items-start gap-3.5">
+   539→                      <input
+   540→                        type="checkbox"
+   541→                        checked={giftWrap}
+   542→                        onChange={(e) => setGiftWrap(e.target.checked)}
+   543→                        className="mt-0.5 h-4 w-4 shrink-0 accent-[#1c3a2a]"
+   544→                      />
+   545→                      <span className="min-w-0">
+   546→                        <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
+   547→                          <span className="text-sm font-bold uppercase tracking-[0.14em] text-charcoal">
+   548→                            {tt('Gift wrap this harvest', 'ខ្ចប់ជាកាដូ')}
+   549→                          </span>
+   550→                          <span className="text-xs font-semibold text-gold">
+   551→                            +{formatPrice(GIFT_WRAP_FEE)}
+   552→                          </span>
+   553→                        </span>
+   554→                        <span className="mt-1 block text-xs leading-relaxed text-stone">
+   555→                          {tt(
+   556→                            'Hand-tied kraft wrap, beeswax seal and a farmer story card — ready to give.',
+   557→                            'ក្រដាសស្លុងដៃ ត្រីមាសស្រាឈេះ និងកាតរឿងកសិករ — ត្រៀមជាកាដូ។',
+   558→                          )}
+   559→                        </span>
+   560→                      </span>
+   561→                    </label>
+   562→                    {giftWrap && (
+   563→                      <div className="mt-4">
+   564→                        <Label htmlFor="gift-note" className="text-xs text-stone">
+   565→                          {tt('Handwritten note (optional)', 'សំបុត្រដោយដៃ (ស្រេចចិត្ត)')}
+   566→                        </Label>
+   567→                        <Textarea
+   568→                          id="gift-note"
+   569→                          rows={2}
+   570→                          maxLength={220}
+   571→                          value={giftNote}
+   572→                          onChange={(e) => setGiftNote(e.target.value)}
+   573→                          placeholder={tt(
+   574→                            'e.g. For Mum — grown by Sokha Chea in Prey Veng.',
+   575→                            'ឧ. សម្រាប់មាតា — ដាំដោយសុខា នៅព្រៃវែង។',
+   576→                          )}
+   577→                          className="input-editorial mt-2 h-20 resize-none py-3 leading-relaxed"
+   578→                        />
+   579→                        <p className="mt-1.5 text-right text-[10px] tabular-nums text-stone">
+   580→                          {giftNote.length}/220
+   581→                        </p>
+   582→                      </div>
+   583→                    )}
+   584→                  </div>
+   585→                </fieldset>
+   586→              )}
+   587→
+   588→              {/* ── STEP 3 · PAYMENT ── */}
+   589→              {step === 3 && (
+   590→                <div className="mt-9">
+   591→                  <div className="flex items-start gap-3 border border-gold/40 bg-parchment p-4 text-xs leading-relaxed text-stone">
+   592→                    <Info className="mt-0.5 h-4 w-4 shrink-0 text-gold" strokeWidth={1.5} />
+   593→                    <p>{t('checkout.note')}</p>
+   594→                  </div>
+   595→
+   596→                  <fieldset className="mt-8">
+   597→                    <legend className="eyebrow text-stone">{t('payment.method')}</legend>
+   598→                    <div className="mt-5 grid gap-3 sm:grid-cols-2">
+   599→                      {paymentMethods.map((m) => {
+   600→                        const selected = payment === m.id;
+   601→                        const Icon = m.icon;
+   602→                        return (
+   603→                          <button
+   604→                            type="button"
+   605→                            key={m.id}
+   606→                            onClick={() => setPayment(m.id)}
+   607→                            aria-pressed={selected}
+   608→                            className={cn(
+   609→                              'flex items-center gap-3 border p-4 text-left transition-colors duration-300',
+   610→                              selected
+   611→                                ? 'border-forest bg-parchment/50'
+   612→                                : 'border-charcoal/15 bg-transparent hover:border-charcoal/30',
+   613→                            )}
+   614→                          >
+   615→                            <Icon className="h-5 w-5 shrink-0 text-forest" strokeWidth={1.5} />
+   616→                            <span className="flex-1 text-sm font-semibold text-charcoal">
+   617→                              {m.name}
+   618→                            </span>
+   619→                            <span
+   620→                              aria-hidden="true"
+   621→                              className={cn(
+   622→                                'flex h-5 w-5 shrink-0 items-center justify-center border transition-colors duration-300',
+   623→                                selected
+   624→                                  ? 'border-forest bg-forest text-ivory'
+   625→                                  : 'border-charcoal/25 text-transparent',
+   626→                              )}
+   627→                            >
+   628→                              <Check className="h-3 w-3" strokeWidth={3} />
+   629→                            </span>
+   630→                          </button>
+   631→                        );
+   632→                      })}
+   633→                    </div>
+   634→                  </fieldset>
+   635→
+   636→                  {payment === 'card' && (
+   637→                    <div className="mt-5 border border-charcoal/15 bg-parchment/40 p-5">
+   638→                      <p className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.22em] text-stone">
+   639→                        <Lock className="h-3.5 w-3.5" strokeWidth={1.5} />
+   640→                        {tt('Demo card — nothing will be charged', 'កាតសាកល្បង — គ្មានប្រាក់ត្រូវគិត')}
+   641→                      </p>
+   642→                      <div className="mt-4 grid gap-4 sm:grid-cols-2">
+   643→                        <div className="sm:col-span-2">
+   644→                          <Label htmlFor="cc-number" className="text-xs text-stone">
+   645→                            {tt('Card number', 'លេខកាត')}
+   646→                          </Label>
+   647→                          <input
+   648→                            id="cc-number"
+   649→                            disabled
+   650→                            placeholder="•••• •••• •••• 1234"
+   651→                            className="input-editorial mt-2 opacity-70"
+   652→                          />
+   653→                        </div>
+   654→                        <div>
+   655→                          <Label htmlFor="cc-name" className="text-xs text-stone">
+   656→                            {tt('Name on card', 'ឈ្មោះលើកាត')}
+   657→                          </Label>
+   658→                          <input
+   659→                            id="cc-name"
+   660→                            disabled
+   661→                            placeholder="A N Other"
+   662→                            className="input-editorial mt-2 opacity-70"
+   663→                          />
+   664→                        </div>
+   665→                        <div className="grid grid-cols-2 gap-4">
+   666→                          <div>
+   667→                            <Label htmlFor="cc-expiry" className="text-xs text-stone">
+   668→                              {tt('Expiry', 'ថ្ងៃផុតកំណត់')}
+   669→                            </Label>
+   670→                            <input
+   671→                              id="cc-expiry"
+   672→                              disabled
+   673→                              placeholder="MM / YY"
+   674→                              className="input-editorial mt-2 opacity-70"
+   675→                            />
+   676→                          </div>
+   677→                          <div>
+   678→                            <Label htmlFor="cc-cvc" className="text-xs text-stone">
+   679→                              CVC
+   680→                            </Label>
+   681→                            <input
+   682→                              id="cc-cvc"
+   683→                              disabled
+   684→                              placeholder="•••"
+   685→                              className="input-editorial mt-2 opacity-70"
+   686→                            />
+   687→                          </div>
+   688→                        </div>
+   689→                      </div>
+   690→                    </div>
+   691→                  )}
+   692→                </div>
+   693→              )}
+   694→
+   695→              {/* ── Step navigation ── */}
+   696→              <div className="mt-10 flex flex-col gap-3 sm:flex-row-reverse">
+   697→                <button
+   698→                  type="submit"
+   699→                  disabled={placing}
+   700→                  className="btn-primary flex-1 disabled:cursor-not-allowed disabled:opacity-70"
+   701→                >
+   702→                  {placing ? (
+   703→                    <>
+   704→                      <Loader2 className="h-4 w-4 animate-spin" strokeWidth={2} />
+   705→                      {tt('Placing…', 'កំពុងដាក់…')}
+   706→                    </>
+   707→                  ) : step === 3 ? (
+   708→                    <>
+   709→                      <Lock className="h-4 w-4" strokeWidth={1.5} />
+   710→                      {t('checkout.place')}
+   711→                    </>
+   712→                  ) : (
+   713→                    t('checkout.continue')
+   714→                  )}
+   715→                </button>
+   716→                <button
+   717→                  type="button"
+   718→                  onClick={goBack}
+   719→                  disabled={placing}
+   720→                  className="btn-outline flex-1 disabled:cursor-not-allowed disabled:opacity-50 sm:flex-none"
+   721→                >
+   722→                  <ArrowLeft className="h-4 w-4" strokeWidth={1.5} />
+   723→                  {t('checkout.back')}
+   724→                </button>
+   725→              </div>
+   726→            </div>
+   727→          </form>
+   728→        </Reveal>
+   729→
+   730→        {/* ── Summary ─────────────────────────────────────────────────────────── */}
+   731→        <aside className="self-start lg:sticky lg:top-24" aria-label={t('checkout.summary')}>
+   732→          <Reveal delay={100}>
+   733→            <OrderSummary
+   734→              items={summaryItems}
+   735→              subtotal={subtotal}
+   736→              shipping={shipping}
+   737→              discount={discount}
+   738→              giftFee={giftFee}
+   739→              promoCode={promoOk && promoDiscount > 0 ? promo!.code : undefined}
+   740→              promoLabel={promoOk ? (lang === 'kh' ? promo!.labelKh : promo!.labelEn) : undefined}
+   741→              promoDiscount={promoOk && promoDiscount > 0 ? promoDiscount : undefined}
+   742→              allowPromo
+   743→              showEdits={step === 3}
+   744→              onEdit={(s) => setStep(s)}
+   745→              className="p-6 md:p-8"
+   746→            />
+   747→          </Reveal>
+   748→        </aside>
+   749→      </div>
+   750→    </div>
+   751→  );
+   752→}
+   753→

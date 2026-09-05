@@ -54,7 +54,7 @@ export async function subscribeNewsletter(email: string): Promise<{ ok: boolean;
 
 export async function createOrder(
   payload: Omit<StoredOrder, 'id' | 'orderNumber' | 'createdAt'>,
-): Promise<{ ok: boolean; order?: StoredOrder; message?: string }> {
+): Promise<{ ok: boolean; order?: StoredOrder; adjusted?: boolean; message?: string }> {
   const res = await fetch('/api/orders', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

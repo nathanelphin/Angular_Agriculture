@@ -127,6 +127,7 @@ export default function CheckoutView({ view }: ViewProps) {
   const navigate = useRouterStore((s) => s.navigate);
   const items = useCartStore((s) => s.items);
   const clearCart = useCartStore((s) => s.clear);
+  const setCartQty = useCartStore((s) => s.setQty);
   const promoCode = useCartStore((s) => s.promoCode);
   const addOrder = useOrdersStore((s) => s.add);
   const mounted = useMounted();
@@ -222,7 +223,52 @@ export default function CheckoutView({ view }: ViewProps) {
     if (placing || lines.length === 0) return;
     setPlacing(true);
 
-    const orderItems: OrderItem[] = lines.map(({ item, product, unitPrice }) => ({
+    // ── Shelf hard-guard ─────────────────────────────────────────────────────
+    // The order can never promise more than the shelf holds. Over-shelf lines
+    // (reachable through saved baskets, reorders or two open tabs) are trimmed
+    // to the shelf here, the basket is synced to match, and the shopper is
+    // told — then the (adjusted) order is placed. The server clamps again.
+    const adjusted: typeof lines = [];
+    const dropped: typeof lines = [];
+    const clampedLines = lines.flatMap((l) => {
+      const shelf = shelfFor(l.product, l.item.size);
+      const qty = Math.min(l.item.qty, shelf);
+      if (qty <= 0) {
+        dropped.push(l);
+        return [];
+      }
+      if (qty < l.item.qty) adjusted.push(l);
+      return [{ ...l, item: { ...l.item, qty } }];
+    });
+
+    if (clampedLines.length === 0) {
+      setPlacing(false);
+      toast.error(t('checkout.allShelfGone'));
+      navigate({ name: 'cart' });
+      return;
+    }
+    if (adjusted.length + dropped.length > 0) {
+      adjusted.forEach((l) => setCartQty(l.item.productId, l.item.size, l.item.qty));
+      dropped.forEach((l) => setCartQty(l.item.productId, l.item.size, 0));
+      toast.warning(t('checkout.trimmed', { n: adjusted.length + dropped.length }));
+    }
+
+    const clampedSubtotal = clampedLines.reduce((acc, l) => acc + l.unitPrice * l.item.qty, 0);
+    const clampedPromoOk = Boolean(promo && clampedSubtotal >= promo.minSubtotal);
+    const clampedShipping = shippingFor(delivery, clampedSubtotal, clampedPromoOk ? promo : undefined);
+    const clampedDiscount = harvestDiscountFor(clampedSubtotal);
+    const clampedGiftFee = giftWrap ? GIFT_WRAP_FEE : 0;
+    const clampedPromoDiscount = clampedPromoOk
+      ? promo!.kind === 'percent'
+        ? Math.round(clampedSubtotal * (promo!.value / 100) * 100) / 100
+        : promo!.kind === 'amount'
+          ? promo!.value
+          : 0
+      : 0;
+    const clampedTotal =
+      clampedSubtotal + clampedShipping + clampedGiftFee - clampedDiscount - clampedPromoDiscount;
+
+    const orderItems: OrderItem[] = clampedLines.map(({ item, product, unitPrice }) => ({
       productId: product.id,
       slug: product.slug,
       name: lang === 'kh' && product.nameKh ? product.nameKh : product.name,
@@ -235,12 +281,12 @@ export default function CheckoutView({ view }: ViewProps) {
 
     const payload: Omit<StoredOrder, 'id' | 'orderNumber' | 'createdAt'> = {
       items: orderItems,
-      subtotal,
-      shipping,
-      discount,
-      promoCode: promoOk ? promo!.code : undefined,
-      promoDiscount: promoOk && promoDiscount > 0 ? promoDiscount : undefined,
-      total,
+      subtotal: clampedSubtotal,
+      shipping: clampedShipping,
+      discount: clampedDiscount,
+      promoCode: clampedPromoOk ? promo!.code : undefined,
+      promoDiscount: clampedPromoOk && clampedPromoDiscount > 0 ? clampedPromoDiscount : undefined,
+      total: clampedTotal,
       giftWrap,
       giftNote: giftWrap && giftNote.trim() ? giftNote.trim() : undefined,
       customer: {
@@ -263,6 +309,11 @@ export default function CheckoutView({ view }: ViewProps) {
       if (res.ok && res.order) {
         addOrder(res.order);
         clearCart();
+        if (res.adjusted) {
+          // Two tabs (or two shoppers) reached for the same shelf — the server
+          // trimmed the order to what was actually there.
+          toast.warning(t('checkout.serverTrimmed'));
+        }
         toast.success(t('confirm.title'));
         navigate({ name: 'confirmation', orderId: res.order.id });
       } else {
