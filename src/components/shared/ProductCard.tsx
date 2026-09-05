@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { Check, Heart } from 'lucide-react';
+import { Check, Eye, Heart } from 'lucide-react';
 import type { Product } from '@/lib/types';
 import { useLang } from '@/lib/stores/lang';
 import { useCartStore } from '@/lib/stores/cart';
@@ -10,6 +10,7 @@ import { useRouterStore } from '@/lib/stores/router';
 import { provinceName } from '@/lib/data/provinces';
 import { SmartImage } from '@/components/shared/SmartImage';
 import { RatingStars } from '@/components/shared/RatingStars';
+import { QuickViewDialog } from '@/components/shared/QuickViewDialog';
 import { cn } from '@/lib/utils';
 
 interface ProductCardProps {
@@ -30,6 +31,7 @@ export function ProductCard({ product, priority = false, className }: ProductCar
   const toggleWishlist = useWishlistStore((s) => s.toggle);
   const [justAdded, setJustAdded] = useState(false);
   const [heartPop, setHeartPop] = useState(false);
+  const [quickOpen, setQuickOpen] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const popTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -118,7 +120,7 @@ export function ProductCard({ product, priority = false, className }: ProductCar
         onClick={handleWishlist}
         aria-label={wishlisted ? t('common.removeFromWishlist') : t('common.addToWishlist')}
         aria-pressed={wishlisted}
-        className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center bg-white/95 text-charcoal shadow-sm transition-all duration-300 hover:scale-110 focus-visible:outline-2 focus-visible:outline-gold"
+        className="absolute right-3 top-3 z-10 flex h-9 w-9 items-center justify-center bg-white/95 text-charcoal shadow-sm transition-all duration-300 hover:scale-110 focus-visible:outline-2 focus-visible:outline-gold"
       >
         <Heart
           className={cn(
@@ -128,6 +130,19 @@ export function ProductCard({ product, priority = false, className }: ProductCar
           )}
           strokeWidth={1.5}
         />
+      </button>
+
+      {/* Quick view — desktop hover affordance under the wishlist heart */}
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          setQuickOpen(true);
+        }}
+        aria-label={`${t('common.quickView')}: ${name}`}
+        className="absolute right-3 top-14 z-10 hidden h-9 w-9 items-center justify-center bg-white/95 text-charcoal opacity-0 shadow-sm transition-all duration-300 hover:scale-110 hover:text-forest focus-visible:opacity-100 focus-visible:outline-2 focus-visible:outline-gold group-hover:opacity-100 sm:flex"
+      >
+        <Eye className="h-4 w-4" strokeWidth={1.5} aria-hidden="true" />
       </button>
 
       {/* Info */}
@@ -172,6 +187,8 @@ export function ProductCard({ product, priority = false, className }: ProductCar
           </button>
         </div>
       </div>
+
+      <QuickViewDialog product={product} open={quickOpen} onOpenChange={setQuickOpen} />
     </article>
   );
 }

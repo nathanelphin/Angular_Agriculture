@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { ArrowLeft, ArrowRight, Check, Heart, Leaf, Recycle } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, Heart, Leaf, Recycle, ZoomIn } from 'lucide-react';
 import type { ProvinceId, ViewProps } from '@/lib/types';
 import { fetchFarmers, fetchProduct, fetchProducts } from '@/lib/api';
 import { useLang } from '@/lib/stores/lang';
@@ -71,6 +71,8 @@ export default function ProductView({ view }: ViewProps) {
   const [qty, setQty] = useState(1);
   const [justAdded, setJustAdded] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Lens zoom — cursor-following magnification on fine-pointer devices.
+  const lensWrapRef = useRef<HTMLDivElement>(null);
 
   // Selection state initialises from the loaded product; the keyed view wrapper remounts
   // this component on navigation, so no reset effect is required.
@@ -181,6 +183,29 @@ export default function ProductView({ view }: ViewProps) {
   const activeAlt =
     gallery[Math.min(activeImage, Math.max(gallery.length - 1, 0))]?.alt ?? product.name;
 
+  const lensMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (typeof window !== 'undefined' && !window.matchMedia('(pointer: fine)').matches) return;
+    const wrap = lensWrapRef.current;
+    const target = wrap?.firstElementChild as HTMLElement | null;
+    if (!wrap || !target) return;
+    const r = wrap.getBoundingClientRect();
+    const x = ((e.clientX - r.left) / r.width) * 100;
+    const y = ((e.clientY - r.top) / r.height) * 100;
+    wrap.classList.add('is-lensing');
+    target.style.transformOrigin = `${x}% ${y}%`;
+    target.style.transform = 'scale(1.8)';
+  };
+
+  const lensLeave = () => {
+    const wrap = lensWrapRef.current;
+    const target = wrap?.firstElementChild as HTMLElement | null;
+    wrap?.classList.remove('is-lensing');
+    if (target) {
+      target.style.transform = 'scale(1)';
+      target.style.transformOrigin = 'center center';
+    }
+  };
+
   const wished = wishlistIds.includes(product.id);
   const farmerSlug =
     farmer?.slug ??
@@ -251,15 +276,28 @@ export default function ProductView({ view }: ViewProps) {
         <div className="grid gap-12 pb-20 pt-8 lg:grid-cols-2 lg:gap-16">
           {/* LEFT — gallery */}
           <div>
-            <div className="group relative overflow-hidden border border-charcoal/10 bg-parchment">
-              <SmartImage
-                key={activeSrc}
-                src={activeSrc}
-                alt={activeAlt}
-                ratio="portrait"
-                priority
-                imgClassName="group-hover:scale-105"
-              />
+            <div
+              ref={lensWrapRef}
+              className="lens-wrap relative overflow-hidden border border-charcoal/10 bg-parchment"
+              onMouseMove={lensMove}
+              onMouseLeave={lensLeave}
+            >
+              <div className="lens-target">
+                <SmartImage
+                  key={activeSrc}
+                  src={activeSrc}
+                  alt={activeAlt}
+                  ratio="portrait"
+                  priority
+                />
+              </div>
+              <span
+                aria-hidden="true"
+                className="zoom-hint pointer-events-none absolute bottom-3 right-3 hidden items-center gap-1.5 bg-ivory/90 px-2.5 py-1.5 text-[9px] font-bold uppercase tracking-[0.22em] text-charcoal/70 transition-opacity duration-300 md:inline-flex"
+              >
+                <ZoomIn className="h-3 w-3" strokeWidth={1.5} />
+                {t('product.zoomHint')}
+              </span>
             </div>
             <div className="mt-4 flex gap-3" role="group" aria-label={`${name} gallery`}>
               {gallery.map((image, i) => (

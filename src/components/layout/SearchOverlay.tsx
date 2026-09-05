@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { MapPin, X } from 'lucide-react';
+import { Clock, MapPin, X } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
 import { SmartImage } from '@/components/shared/SmartImage';
 import { KhmerOrnament } from '@/components/shared/KhmerOrnament';
@@ -10,6 +10,7 @@ import { formatPrice } from '@/components/shared/ProductCard';
 import { useRouterStore } from '@/lib/stores/router';
 import { useUIStore } from '@/lib/stores/ui';
 import { useLang } from '@/lib/stores/lang';
+import { useRecentSearchesStore } from '@/lib/stores/recentSearches';
 import { useDebounce } from '@/lib/hooks';
 import { fetchFarmers, fetchProducts, fetchStories } from '@/lib/api';
 import { provinceName, provinces } from '@/lib/data/provinces';
@@ -39,6 +40,9 @@ export function SearchOverlay() {
   const [query, setQuery] = useState('');
   const debounced = useDebounce(query, 200);
   const inputRef = useRef<HTMLInputElement>(null);
+  const recentTerms = useRecentSearchesStore((s) => s.terms);
+  const recordSearch = useRecentSearchesStore((s) => s.add);
+  const clearRecentSearches = useRecentSearchesStore((s) => s.clear);
 
   // Central close/reset — safe to call from event handlers.
   const closeSearch = () => {
@@ -112,7 +116,18 @@ export function SearchOverlay() {
     results.provinces.length === 0;
 
   const go = (v: View) => {
+    // Remember the active query when it led to a destination.
+    if (q) recordSearch(q);
     navigate(v);
+    closeSearch();
+  };
+
+  // Enter submits the query as a shop search (and remembers it).
+  const submitQuery = () => {
+    const term = debounced.trim();
+    if (!term) return;
+    recordSearch(term);
+    navigate({ name: 'shop', query: term });
     closeSearch();
   };
 
@@ -156,6 +171,9 @@ export function SearchOverlay() {
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') submitQuery();
+            }}
             placeholder={t('search.placeholder')}
             aria-label={t('search.title')}
             enterKeyHint="search"
@@ -183,6 +201,37 @@ export function SearchOverlay() {
                     </button>
                   ))}
                 </div>
+
+                {recentTerms.length > 0 && (
+                  <div className="mt-9">
+                    <div className="flex items-center justify-between gap-4">
+                      <p className="eyebrow text-stone">{t('search.recent')}</p>
+                      <button
+                        type="button"
+                        onClick={clearRecentSearches}
+                        className="text-[10px] font-bold uppercase tracking-[0.22em] text-stone underline decoration-terracotta/60 underline-offset-4 transition-colors duration-300 hover:text-terracotta"
+                      >
+                        {t('search.clearRecent')}
+                      </button>
+                    </div>
+                    <div className="mt-5 flex flex-wrap gap-3">
+                      {recentTerms.map((term) => (
+                        <button
+                          key={term}
+                          type="button"
+                          onClick={() => {
+                            setQuery(term);
+                            inputRef.current?.focus();
+                          }}
+                          className="inline-flex items-center gap-2 border border-charcoal/15 bg-white px-4 py-2 text-[11px] font-semibold tracking-[0.08em] text-charcoal/80 transition-colors duration-300 hover:border-forest hover:text-forest"
+                        >
+                          <Clock className="h-3 w-3 text-stone" strokeWidth={1.5} aria-hidden="true" />
+                          {term}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             ) : isEmpty && searching ? (
               <p className="py-10 text-center text-sm text-stone">{t('common.loading')}</p>

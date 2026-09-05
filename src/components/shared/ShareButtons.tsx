@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Check, Link2, Share2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useLang } from '@/lib/stores/lang';
+import { copyTextToClipboard } from '@/lib/clipboard';
 import { cn } from '@/lib/utils';
 
 interface ShareButtonsProps {
@@ -26,12 +27,12 @@ export function ShareButtons({ title, className, tone = 'light' }: ShareButtonsP
 
   const copyLink = async () => {
     const url = window.location.href;
-    try {
-      await navigator.clipboard.writeText(url);
+    const ok = await copyTextToClipboard(url);
+    if (ok) {
       setCopied(true);
       window.setTimeout(() => setCopied(false), 1800);
       toast.success(t('share.copied'));
-    } catch {
+    } else {
       toast.error(t('share.copyFailed'));
     }
   };

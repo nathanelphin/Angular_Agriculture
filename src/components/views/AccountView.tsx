@@ -6,9 +6,11 @@ import { useOrdersStore } from '@/lib/stores/orders';
 import { useRouterStore } from '@/lib/stores/router';
 import { useLang } from '@/lib/stores/lang';
 import { useMounted } from '@/lib/hooks';
+import { formatDateShort } from '@/lib/format-date';
 import { Reveal } from '@/components/shared/Reveal';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { formatPrice } from '@/components/shared/ProductCard';
+import { orderStageIndex } from '@/components/checkout/OrderTimeline';
 import { cn } from '@/lib/utils';
 
 export default function AccountView({ view }: ViewProps) {
@@ -18,12 +20,12 @@ export default function AccountView({ view }: ViewProps) {
   const orders = useOrdersStore((s) => s.orders);
   const mounted = useMounted();
 
-  const dateLabel = (iso: string) =>
-    new Date(iso).toLocaleDateString(lang === 'kh' ? 'km-KH' : 'en-US', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-    });
+  const dateLabel = (iso: string) => formatDateShort(iso, lang);
+
+  const stageLabel = (iso: string) => {
+    const labels = [t('track.confirmed'), t('track.packing'), t('track.transit'), t('track.delivered')];
+    return labels[orderStageIndex(iso)] ?? labels[0];
+  };
 
   return (
     <div className="container-editorial pb-28 pt-14 md:pt-24">
@@ -123,6 +125,23 @@ export default function AccountView({ view }: ViewProps) {
                         <p className="font-display text-lg text-charcoal">{order.orderNumber}</p>
                         <p className="mt-1 text-xs text-stone">
                           {dateLabel(order.createdAt)} · {order.items.length} {t('cart.items')}
+                        </p>
+                        <p
+                          className={cn(
+                            'mt-2 inline-flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-[0.2em]',
+                            orderStageIndex(order.createdAt) === 3 ? 'text-gold' : 'text-forest',
+                          )}
+                        >
+                          <span
+                            aria-hidden="true"
+                            className={cn(
+                              'h-1.5 w-1.5 rounded-full',
+                              orderStageIndex(order.createdAt) === 3
+                                ? 'bg-gold'
+                                : 'animate-pulse bg-forest',
+                            )}
+                          />
+                          {t('account.status')}: {stageLabel(order.createdAt)}
                         </p>
                       </div>
                       <div className="flex items-center justify-between gap-6 sm:justify-end">

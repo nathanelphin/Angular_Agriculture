@@ -121,6 +121,7 @@ export const translations: Record<Lang, Record<string, string>> = {
     'common.discover': 'Discover',
     'common.province': 'Province',
     'common.close': 'Close',
+    'common.quickView': 'Quick View',
 
     'search.placeholder': 'Search pepper, rice, farmers, provinces…',
     'search.title': 'Search the Farm',
@@ -130,6 +131,9 @@ export const translations: Record<Lang, Record<string, string>> = {
     'search.provinces': 'Provinces',
     'search.noResults': 'No results found for',
     'search.popular': 'Popular searches',
+    'search.recent': 'Recent searches',
+    'search.clearRecent': 'Clear',
+    'search.searchFor': 'Search for',
 
     'shop.title': 'Shop the Harvest',
     'shop.subtitle':
@@ -286,6 +290,10 @@ export const translations: Record<Lang, Record<string, string>> = {
     'wishlist.empty': 'Nothing saved yet',
     'wishlist.emptyDesc': 'Tap the heart on any product to keep it here.',
     'wishlist.discover': 'Discover Products',
+    'wishlist.copy': 'Copy List',
+    'wishlist.copied': 'Wishlist copied to clipboard',
+    'wishlist.share': 'Share',
+    'wishlist.listTitle': 'My SOVANN FARM Wishlist',
 
     'account.title': 'Your Account',
     'account.profile': 'Profile',
@@ -295,6 +303,7 @@ export const translations: Record<Lang, Record<string, string>> = {
     'account.language': 'Language',
     'account.demo': 'Prototype account — data lives only in your browser.',
     'account.viewOrder': 'View order',
+    'account.status': 'Status',
 
     'footer.allProducts': 'All Products',
     'footer.aboutUs': 'About Us',
@@ -314,6 +323,8 @@ export const translations: Record<Lang, Record<string, string>> = {
     'track.packing': 'Packing at the Farm Hub',
     'track.transit': 'On the Road',
     'track.delivered': 'Delivered',
+    'track.live': 'Live',
+    'track.demoNote': 'Demo fulfilment — stages advance on an accelerated schedule.',
 
     'reviews.title': 'From Our Tables',
     'reviews.breakdown': 'Rating breakdown',
@@ -338,6 +349,8 @@ export const translations: Record<Lang, Record<string, string>> = {
     'reviews.communityNote': 'Shared directly by a Sovann Farm customer.',
 
     'product.recentlyViewed': 'Recently Viewed',
+    'product.zoomHint': 'Hover to zoom',
+    'quickView.fullDetails': 'View Full Details',
 
     'article.prevStory': 'Previous Story',
     'article.nextStory': 'Next Story',
@@ -460,6 +473,7 @@ export const translations: Record<Lang, Record<string, string>> = {
     'common.discover': 'ស្វែងរក',
     'common.province': 'ខេត្ត',
     'common.close': 'បិទ',
+    'common.quickView': 'មើលរហ័ស',
 
     'search.placeholder': 'ស្វែងរក ម្រេច បាយ កសិករ ខេត្ត…',
     'search.title': 'ស្វែងរកនៅហ្វាម',
@@ -469,6 +483,9 @@ export const translations: Record<Lang, Record<string, string>> = {
     'search.provinces': 'ខេត្ត',
     'search.noResults': 'រកមិនឃើញលទ្ធផលសម្រាប់',
     'search.popular': 'ការស្វែងរកជាប្រជាប្រិយ',
+    'search.recent': 'ការស្វែងរកថ្មីៗ',
+    'search.clearRecent': 'លុប',
+    'search.searchFor': 'ស្វែងរក',
 
     'shop.title': 'ទិញផលដំណំ',
     'shop.subtitle': 'ផលិតផលនីមួយៗប្រាប់អ្នកថា អ្នកណាដាំ មកពីណា និងផលិតដោយរបៀបណា។',
@@ -623,6 +640,10 @@ export const translations: Record<Lang, Record<string, string>> = {
     'wishlist.empty': 'មិនមានអ្វីបានរក្សាទុកនៅឡើយ',
     'wishlist.emptyDesc': 'ចុចបេះដូងលើផលិតផលណាមួយដើម្បីរក្សាទុកវានៅទីនេះ។',
     'wishlist.discover': 'ស្វែងរកផលិតផល',
+    'wishlist.copy': 'ចម្លងបញ្ជី',
+    'wishlist.copied': 'បានចម្លងបញ្ជីចង់ទិញទៅក្ដារតម្រា',
+    'wishlist.share': 'ចែករំលែក',
+    'wishlist.listTitle': 'បញ្ជីចង់ទិញរបស់ខ្ញុំ — SOVANN FARM',
 
     'account.title': 'គណនីរបស់អ្នក',
     'account.profile': 'ប្រវត្តិរូប',
@@ -632,6 +653,7 @@ export const translations: Record<Lang, Record<string, string>> = {
     'account.language': 'ភាសា',
     'account.demo': 'គណនីគំរូ — ទិន្នន័យមានតែក្នុងកម្មវិធីរុករករបស់អ្នក។',
     'account.viewOrder': 'មើលការបញ្ជាទិញ',
+    'account.status': 'ស្ថានភាព',
 
     'footer.allProducts': 'ផលិតផលទាំងអស់',
     'footer.aboutUs': 'អំពីយើង',
@@ -651,6 +673,8 @@ export const translations: Record<Lang, Record<string, string>> = {
     'track.packing': 'កំពុងខ្ចប់នៅមជ្ឈមណ្ឌល',
     'track.transit': 'កំពុងដឹកជញ្ជូន',
     'track.delivered': 'បានដល់ដៃអ្នក',
+    'track.live': 'ផ្ទាល់',
+    'track.demoNote': 'ការបញ្ជូនសាកល្បង — ដំណាក់កាលរីកចម្រើនលឿនជាងពេលវេលាពិត។',
 
     'reviews.title': 'ពីតុអាហាររបស់យើង',
     'reviews.breakdown': 'ការបែងចែកពិន្ទុ',
@@ -675,6 +699,8 @@ export const translations: Record<Lang, Record<string, string>> = {
     'reviews.communityNote': 'ចែករំលែកដោយផ្ទាល់ពីអតិថិជនសូវណ្ណហ្វាម។',
 
     'product.recentlyViewed': 'ទំនិញដែលទើបមើល',
+    'product.zoomHint': 'ដាក់កណ្ដុរដើម្បីពង្រីក',
+    'quickView.fullDetails': 'មើលព័ត៌មានលម្អិតពេញលេញ',
 
     'article.prevStory': 'រឿងរ៉ាវមុន',
     'article.nextStory': 'រឿងរ៉ាវបន្ទាប់',

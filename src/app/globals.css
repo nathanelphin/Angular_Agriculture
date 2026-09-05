@@ -223,6 +223,47 @@
   .input-editorial {
     @apply h-12 w-full border border-charcoal/20 bg-transparent px-4 text-sm text-charcoal placeholder:text-stone/70 focus:border-forest focus-visible:ring-0;
   }
+
+  /* Buttons — trailing icon (arrow) glides on hover */
+  .btn-primary > svg:last-child,
+  .btn-outline > svg:last-child,
+  .btn-gold > svg:last-child,
+  .btn-light > svg:last-child {
+    transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .btn-primary:hover > svg:last-child,
+  .btn-outline:hover > svg:last-child,
+  .btn-gold:hover > svg:last-child,
+  .btn-light:hover > svg:last-child {
+    transform: translateX(3px);
+  }
+
+  /* Magazine drop cap for long-form lead paragraphs (Latin scripts) */
+  .drop-cap::first-letter {
+    font-family: var(--font-playfair), Georgia, "Times New Roman", serif;
+    float: left;
+    font-size: 3.35em;
+    line-height: 0.82;
+    font-weight: 600;
+    padding-right: 0.14em;
+    padding-top: 0.06em;
+    color: #1c3a2a;
+  }
+
+  /* Product gallery lens — cursor-following zoom, disabled on coarse pointers */
+  .lens-wrap {
+    cursor: crosshair;
+  }
+  .lens-target {
+    will-change: transform;
+    transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .lens-wrap.is-lensing .lens-target {
+    transition: transform 0.12s linear;
+  }
+  .lens-wrap.is-lensing .zoom-hint {
+    opacity: 0;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

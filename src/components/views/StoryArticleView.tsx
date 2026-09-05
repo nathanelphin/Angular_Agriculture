@@ -6,22 +6,17 @@ import type { ViewProps } from '@/lib/types';
 import { fetchProducts, fetchStories } from '@/lib/api';
 import { useRouterStore } from '@/lib/stores/router';
 import { useLang } from '@/lib/stores/lang';
+import { formatDateLong } from '@/lib/format-date';
 import { SmartImage } from '@/components/shared/SmartImage';
 import { Reveal } from '@/components/shared/Reveal';
 import { EmptyState } from '@/components/shared/EmptyState';
+import { ReadingProgress } from '@/components/shared/ReadingProgress';
 import { formatPrice } from '@/components/shared/ProductCard';
 import { ShareButtons } from '@/components/shared/ShareButtons';
 import { useSeo } from '@/lib/useSeo';
 import { cn } from '@/lib/utils';
 
 // ─── Story article — long-form editorial reading view ────────────────────────
-
-function formatDate(iso: string): string {
-  const d = new Date(`${iso}T00:00:00`);
-  return Number.isNaN(d.getTime())
-    ? iso
-    : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-}
 
 export default function StoryArticleView({ view }: ViewProps) {
   const slug = view.name === 'story' ? view.slug : '';
@@ -73,6 +68,9 @@ export default function StoryArticleView({ view }: ViewProps) {
 
   return (
     <article>
+      {/* Reading progress — gold hairline at the very top of the viewport */}
+      <ReadingProgress />
+
       {/* Back */}
       <div className="container-editorial pt-8 md:pt-10">
         <button
@@ -95,7 +93,7 @@ export default function StoryArticleView({ view }: ViewProps) {
           <p className="mt-6 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-xs uppercase tracking-[0.22em] text-stone">
             <span>{story.author}</span>
             <span aria-hidden="true">·</span>
-            <span>{formatDate(story.date)}</span>
+            <span>{formatDateLong(story.date, lang)}</span>
             <span aria-hidden="true">·</span>
             <span>
               {story.readTime} {t('stories.read')}
@@ -121,7 +119,12 @@ export default function StoryArticleView({ view }: ViewProps) {
                   <p
                     className={
                       lead
-                        ? 'text-xl leading-loose text-charcoal/90'
+                        ? cn(
+                            'text-xl leading-loose text-charcoal/90',
+                            // Magazine drop cap on the lead paragraph — Latin scripts only,
+                            // Khmer combining marks render poorly with ::first-letter.
+                            lang === 'en' && 'drop-cap',
+                          )
                         : 'text-lg leading-loose text-charcoal/85'
                     }
                   >

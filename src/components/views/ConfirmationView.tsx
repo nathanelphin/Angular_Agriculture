@@ -12,6 +12,7 @@ import { SmartImage } from '@/components/shared/SmartImage';
 import { formatPrice } from '@/components/shared/ProductCard';
 import { OrderTimeline } from '@/components/checkout/OrderTimeline';
 import { GIFT_WRAP_FEE } from '@/components/checkout/totals';
+import { formatDateLong } from '@/lib/format-date';
 
 export default function ConfirmationView({ view }: ViewProps) {
   const orderId = view.name === 'confirmation' ? view.orderId : '';
@@ -54,10 +55,7 @@ export default function ConfirmationView({ view }: ViewProps) {
     );
   }
 
-  const dateLabel = new Date(order.createdAt).toLocaleDateString(
-    lang === 'kh' ? 'km-KH' : 'en-US',
-    { day: 'numeric', month: 'long', year: 'numeric' },
-  );
+  const dateLabel = formatDateLong(order.createdAt, lang);
 
   const deliveryLabels: Record<string, string> = {
     standard: t('delivery.standard'),
@@ -122,7 +120,7 @@ export default function ConfirmationView({ view }: ViewProps) {
         {/* ── Order journey ──────────────────────────────────────────────── */}
         <Reveal delay={250} className="mt-4">
           <div className="card-editorial p-6 md:p-8">
-            <OrderTimeline etaLabel={order.eta} />
+            <OrderTimeline etaLabel={order.eta} placedAt={order.createdAt} />
           </div>
         </Reveal>
 

@@ -247,3 +247,37 @@ Stage Summary:
 - SOVANN FARM v1.2: prototype grew a real backend surface — reviews are now genuinely persisted in SQLite (Prisma) with sanitize/validate on the API; checkout gained gift wrap + handwritten note; product/story pages gained social sharing; per-view SEO titles; merchandising (stock urgency + scored cart cross-sell); power-user '/' search.
 - ⚠ KNOWN ISSUE / NEXT SESSION FIRST STEP: dev server was not running at handoff (sandbox kills session-spawned processes). Restart with the setsid command above and verify `GET / 200` before any browser work. Prisma schema + DB are in sync (Review + Order.giftWrap/giftNote) — no migration needed.
 - Ideas for next cycle: order-tracking status derived from order age (advance timeline steps), wishlist share/export, product image zoom on hover (detail lens), story reading-progress bar, admin-lite reviews moderation list.
+
+---
+Task ID: 8 (Feature Round 4 — Live Fulfilment + Editorial Polish)
+Agent: Z.ai Code (main)
+Task: Assess status via agent-browser QA, then deepen styling details and add new commerce features (v1.3)
+
+Work Log:
+- STATUS ASSESSMENT: worklog review + dev server restart (sandbox kills session-spawned processes between tool calls — the v1.2 handoff warning was correct; server must be restarted inside each QA call atomically: `setsid node node_modules/.bin/next dev -p 3000 &` + all browser work in the same call). agent-browser QA sweep (home/shop/product/cart/checkout/stories/farmer + EN/KH): all core flows healthy, console clean, zero real page errors (the two empty "✗" entries in `agent-browser errors` pre-date this session and are benign dev-mode noise) → declared stable, proceeded to feature work.
+
+STYLING DETAILS (mandatory #1):
+- STORY READING PROGRESS BAR — new shared ReadingProgress.tsx: fixed 3px gold hairline pinned to viewport top (z-80), rAF-throttled passive scroll listener, transform scaleX only (zero React re-renders). Mounted by StoryArticleView.
+- MAGAZINE DROP CAP — new .drop-cap utility (Playfair, 3.35em float, forest) applied to the story lead paragraph EN-only (Khmer combining marks render poorly with ::first-letter). Verified present in EN, absent in KH.
+- PRODUCT GALLERY LENS ZOOM — ProductView main image now pans a 1.8x magnification that follows the cursor (transform-origin % from mousemove, direct style writes, fine-pointer guard, crosshair cursor, "HOVER TO ZOOM" hint chip that fades while lensing). New .lens-wrap/.lens-target CSS with fast-follow (120ms) + settle (450ms spring bezier) transitions.
+- BUTTON ARROW MICRO-INTERACTION — all .btn-primary/.btn-outline/.btn-gold/.btn-light trailing svg now glides 3px on hover (globals.css).
+- KHMER DATE LOCALISATION — new src/lib/format-date.ts (manual Khmer months + ០-៩ numerals; formatDateLong/Short/DateTime) replacing silent km-KH ICU fallbacks in StoryArticleView, ConfirmationView and AccountView — Khmer dates now always render true Khmer.
+
+FEATURES (mandatory #2):
+- LIVE ORDER TRACKING — OrderTimeline rewritten: stage derived from order age (Confirmed 0-2min → Packing 2-5 → On the Road 5-9 → Delivered >9, demo-accelerated + bilingual note); past steps tick done, active step gets gold pulse dot + LIVE label, header gains pulsing LIVE badge; re-checks every 30s. ConfirmationView passes placedAt; AccountView order rows gain "Status: …" chip (forest pulse / gold when delivered). VERIFIED: fresh order SF-2026-08237 shows Confirmed+LIVE on confirmation + account; old orders show Delivered.
+- QUICK VIEW — new shared QuickViewDialog (Radix): split image/details modal with province·category eyebrow, name+nameKh, rating, per-size price, 3-line description, organic/sustainable badges, size radios, qty stepper, add-to-cart with ADDED ✓ + toast, View Full Details → product page. ProductCard gains a hover eye button under the wishlist heart (opacity-0 → group-hover, keyboard-focus visible, hidden on <sm / touch). VERIFIED open/close/add in EN + KH; hidden at 390px viewport.
+- RECENT SEARCHES — new persisted useRecentSearchesStore (max 6, deduped); SearchOverlay records on Enter-submit AND on result navigation (go()); Enter now submits the query to #/shop?q=…; empty state shows Recent searches chips (Clock icon) with Clear-all. VERIFIED: "peppercorn" typed with real keystrokes → Enter → #/shop?q=peppercorn → reopen → chip present; Clear works.
+- WISHLIST EXPORT — WishlistView header gains Copy List + Share actions (visible when non-empty): formatted plain-text list (name — price — province, brand footer) via new src/lib/clipboard.ts (navigator.clipboard → textarea+execCommand fallback chain, shared with ShareButtons which previously had none). Native share sheet when available. VERIFIED buttons + toast path (actual clipboard write is denied in headless; chain is correct for real browsers).
+- i18n — ~24 new keys EN+KH (common.quickView, quickView.fullDetails, search.recent/clearRecent/searchFor, wishlist.copy/copied/share/listTitle, track.live/demoNote, account.status, product.zoomHint).
+
+FIXES during QA:
+- rules-of-hooks: lensWrapRef moved above early returns in ProductView (lint error).
+- set-state-in-effect: removed QuickViewDialog reset effect (state now initialises on mount per card; project convention).
+- Test-tooling notes (not app bugs): zustand persisted state needs JSON shape ({"state":{"lang":"kh"},"version":0}) — raw setItem silently falls back to EN; Radix Select + province field required for checkout step 1; agent-browser attribute selectors need quoted values.
+
+Verification: `bunx tsc --noEmit` → 0 errors in src/ (pre-existing examples/skills noise only); `bun run lint` clean; 11 atomic browser QA rounds (desktop 1440 + mobile 390 via `set viewport`, EN + KH): story progress/drop-cap, lens, quick view, live timeline (fresh Confirmed → aged Delivered), account status chips, recent searches, wishlist actions, KH strings/dates all green; zero console errors; GET / 200.
+
+Stage Summary:
+- SOVANN FARM v1.3: fulfilment became observable (live order timeline + per-order status in account), browsing became faster (quick view without leaving the grid), search became personal (persisted recent searches + Enter-to-shop), the journal reads like print (reading progress + drop caps), the gallery feels luxury (cursor lens), and Khmer users get true Khmer dates everywhere.
+- Known notes: clipboard writes are environment-denied in headless previews (fallback + toasts behave correctly); order stages are demo-accelerated by design (labelled in UI); agent-browser dev-server must be restarted per tool call in this sandbox.
+- Ideas for next cycle: admin-lite reviews moderation list, product comparison tray, per-size stock display, order-tracking page with hash deep-link from account rows, KH proofread pass on new keys by native reader.
