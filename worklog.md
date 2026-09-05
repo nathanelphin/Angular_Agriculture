@@ -313,3 +313,35 @@ Stage Summary:
 - SOVANN FARM v1.4: shoppers can now put harvests side by side (persist 3-way comparison with best-price/best-rating callouts), track any order at a shareable URL (#/track/SF-…), and buy from the product page one thumb-tap away on mobile; the size selector reads like a price menu. Fixed UX collisions between the three fixed bottom-edge controls via a shared UI-store flag.
 - Known notes: the compare tray intentionally yields nothing — the sticky ATC bar and BackToTop hide while it is open (restores on clear); compare selection persists across sessions by design; the two benign empty console entries pre-date v1.2.
 - Ideas for next cycle: admin-lite reviews moderation list, wishlist → compare hand-off ("compare all saved"), per-size stock in compare dialog (needs per-size stock in the data model), order-tracking status derived stages on the account card linking to track view, KH proofread pass by a native reader.
+
+---
+Task ID: 10 (Feature Round 6 — Back of House + Print Receipt, v1.5)
+Agent: Z.ai Code (main)
+Task: Assess status via agent-browser QA, then deepen styling details and add new commerce features (v1.5)
+
+Work Log:
+- STATUS ASSESSMENT: read worklog (v1.4 handoff), dev server already alive (GET / 200). agent-browser QA sweep (home/shop/product/cart in EN): all healthy, console clean (same benign empty ✗ noise), no bugs found → declared STABLE and proceeded to feature work drawn from the worklog's own "ideas for next cycle".
+
+FEATURES (mandatory #2):
+- STOREKEEPER'S DESK (#/admin) — the biggest addition: a real back-of-house surface.
+  * New `GET /api/admin/summary` (src/app/api/admin/summary/route.ts): one round-trip returning stats (orders, revenue, giftOrders, newsletter count via COUNT, reviews count + average), the last 8 orders (itemsCount parsed from the JSON column) and all community reviews.
+  * New `DELETE /api/reviews?id=…` moderation endpoint (404 on unknown id, 400 on missing id).
+  * api.ts: fetchAdminSummary + AdminSummary type + deleteReview.
+  * New AdminView: eyebrow "BACK OF HOUSE" + demo chip, 4 vitals cards (revenue incl. gift-wrapped note, orders, journal subscribers, community reviews + average), Recent Orders table (order # + date + gift ◆, customer/province, items, total; rows click through to #/track/{orderNumber}), Low-Stock Watch (products with stock ≤ 20 sorted ascending, terracotta pulse dot when ≤ 5, rows link to product pages), Review Moderation list (stars, title, clamped body, author·location·date, product link, trash button → optimistic removal + spinner + bilingual toast + invalidateQueries; real DB delete verified end-to-end).
+  * Router: `admin` View added to types/hashToView; viewToHash already yields #/admin; page.tsx lazy AdminView; SiteShell title "Storekeeper's Desk — Sovann Farm"; discreet footer link "STOREKEEPER'S DESK" in the bottom bar (footer.admin key).
+- WISHLIST → COMPARE HAND-OFF: compare store gains `replaceAll(ids)` (dedupe + cap 3); WishlistView header gains "COMPARE SAVED" (Scale icon) — replaces tray selection with the first three saved harvests, success toast "n × Add to compare", toast guard when fewer than 2 saved. Verified: tray slides up with thumbnails + COMPARE(2), dialog opens, gold Scale icons activate on cards.
+- PRINT RECEIPT: Print Receipt buttons (Printer icon, btn-outline) on TrackView + ConfirmationView → window.print(); @media print stylesheet in globals.css (white body, chrome hidden, container-editorial goes edge-to-edge, card shadows off, break-inside avoid); `print:hidden` added to AnnouncementBar, Navbar, Footer, BackToTop, CompareTray, both CTA rows and the Track back link — a paper-clean order receipt with status chip, journey, address and totals. Toaster hidden via [data-sonner-toaster].
+
+STYLING DETAILS (mandatory #1):
+- ROTATING ANNOUNCEMENT BAR: three editorial messages (support · free delivery · new announcement.fresh) rotate every 5.2s with the fade-in remount pattern; Sprout icon; sr-only element carries the full story so screen readers get no rotation noise.
+- STAT CARD component class (.stat-card): white editorial card that lifts on hover while a gold→honey gradient hairline draws itself across the top edge (scaleX transform, 600ms editorial bezier).
+- Editorial admin tables: hairline rows, 9px uppercase tracked headers, tabular figures, hover parchment wash, max-h scroll areas (global scrollbar styling applies).
+
+i18n: 26 new keys EN+KH (announcement.fresh, footer.admin, receipt.print, wishlist.compare/compareFew, admin.* — eyebrow/title/subtitle/demoNote/stat.*/recentOrders/ordersEmpty/th.*/giftWrap/lowStock/stockHealthy/left/moderation/pending/reviewsEmpty/delete/deleted/deleteFailed). Khmer verified in-browser (title, cards incl. "មធ្យមភាគ 5.0/5", table headers, Khmer dates ០៥ កញ្ញា ២០២៦, low-stock "18 នៅសល់").
+
+Verification: `bunx tsc --noEmit` → 0 errors in src/ (pre-existing examples/skills noise only); `bun run lint` clean (removed one unused eslint-disable after extraction); curl: /api/admin/summary 200 with live data (6 orders, $344 revenue, 1 gift, 1 newsletter), POST review → visible on desk → DELETE → row gone from UI AND DB; browser rounds desktop 1440 + mobile 390 in EN + KH: admin desk render + moderation delete + toast, admin row → track navigation, wishlist compare hand-off → tray → dialog, print button presence, announcement rotation (observed message 2 live), footer desk link, compare CTA regression — all green; console clean; demo state reset at handoff (lang EN, compare/wishlist cleared, test review deleted).
+
+Stage Summary:
+- SOVANN FARM v1.5: the shop gained a back of house — a storekeeper's desk where orders, revenue, subscribers, low stock and community reviews can actually be managed (real SQLite reads + real delete); wishlists now flow straight into comparison; and order receipts print like paper invoices. Announcement strip, vitals cards and admin tables extend the editorial design language.
+- Known notes: the admin desk is a demo surface (no auth) reachable via the discreet footer link — intentional for the prototype; DELETE is unauthenticated by design; moderation list caps at 50 rows (API take: 50); the compare tray still persists across sessions by design.
+- Ideas for next cycle: per-size stock in data model + compare dialog, order-status chip on admin rows (reuse orderStageIndex), export orders CSV from the desk, KH native proofread pass, admin auth gate (simple passphrase) if the desk graduates beyond demo.

@@ -129,7 +129,8 @@ export type View =
   | { name: 'confirmation'; orderId: string }
   | { name: 'track'; orderNumber: string }
   | { name: 'wishlist' }
-  | { name: 'account' };
+  | { name: 'account' }
+  | { name: 'admin' };
 
 export interface ViewProps {
   view: View;

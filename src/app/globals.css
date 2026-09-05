@@ -284,6 +284,45 @@
   .compare-tray-panel {
     animation: var(--animate-tray-up);
   }
+
+  /* Storekeeper's desk — vitals card with a gold hairline that draws itself */
+  .stat-card {
+    @apply relative overflow-hidden border border-charcoal/10 bg-white p-5 transition-all duration-500 hover:-translate-y-0.5 hover:shadow-[0_20px_44px_-28px_rgba(28,58,42,0.45)] md:p-6;
+  }
+  .stat-card::after {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 2px;
+    background: linear-gradient(90deg, #c9a227, #e8d9a0);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .stat-card:hover::after {
+    transform: scaleX(1);
+  }
+}
+
+/* ─── Print — clean paper receipt (order tracking & confirmation) ────────────── */
+@media print {
+  body {
+    background: #fff !important;
+  }
+  /* Toasts never print */
+  [data-sonner-toaster] {
+    display: none !important;
+  }
+  /* Receipt canvas prints edge-to-edge without editorial padding */
+  .container-editorial {
+    max-width: 100% !important;
+    padding: 0 !important;
+  }
+  /* Cards lose their shadows; rules stay crisp for paper */
+  .card-editorial {
+    box-shadow: none !important;
+    break-inside: avoid;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

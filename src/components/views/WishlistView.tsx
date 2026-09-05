@@ -3,10 +3,11 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { Copy, Heart, Share2 } from 'lucide-react';
+import { Copy, Heart, Scale, Share2 } from 'lucide-react';
 import type { Product, ViewProps } from '@/lib/types';
 import { fetchProducts } from '@/lib/api';
 import { useWishlistStore } from '@/lib/stores/wishlist';
+import { useCompareStore } from '@/lib/stores/compare';
 import { useRouterStore } from '@/lib/stores/router';
 import { useLang } from '@/lib/stores/lang';
 import { useMounted } from '@/lib/hooks';
@@ -21,6 +22,7 @@ export default function WishlistView({ view }: ViewProps) {
   const { t, lang } = useLang();
   const navigate = useRouterStore((s) => s.navigate);
   const ids = useWishlistStore((s) => s.ids);
+  const replaceCompare = useCompareStore((s) => s.replaceAll);
   const mounted = useMounted();
   const { data: products } = useQuery({ queryKey: ['products'], queryFn: fetchProducts });
 
@@ -66,6 +68,16 @@ export default function WishlistView({ view }: ViewProps) {
     await handleCopy();
   };
 
+  /** Hand the saved harvests to the comparison tray (first three, in save order). */
+  const handleCompare = () => {
+    if (wishlistProducts.length < 2) {
+      toast.info(t('wishlist.compareFew'));
+      return;
+    }
+    const count = replaceCompare(wishlistProducts.slice(0, 3).map((p) => p.id));
+    toast.success(`${count} × ${t('compare.add')}`);
+  };
+
   return (
     <div className="container-editorial pb-28 pt-14 md:pt-24">
       <Reveal>
@@ -95,6 +107,15 @@ export default function WishlistView({ view }: ViewProps) {
               >
                 <Share2 className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden="true" />
                 {t('wishlist.share')}
+              </button>
+              <span className="h-4 w-px bg-charcoal/15" aria-hidden="true" />
+              <button
+                type="button"
+                onClick={handleCompare}
+                className="inline-flex cursor-pointer items-center gap-2 text-[10px] font-bold uppercase tracking-[0.22em] text-charcoal transition-colors duration-300 hover:text-forest focus-visible:outline-2 focus-visible:outline-gold"
+              >
+                <Scale className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden="true" />
+                {t('wishlist.compare')}
               </button>
             </div>
           )}

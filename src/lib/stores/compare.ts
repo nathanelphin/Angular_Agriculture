@@ -8,6 +8,7 @@ export const COMPARE_MAX = 3;
 interface CompareState {
   ids: string[]; // product ids, selection order
   toggle: (id: string) => 'added' | 'removed' | 'full';
+  replaceAll: (ids: string[]) => number; // bulk set (e.g. wishlist hand-off), returns stored count
   remove: (id: string) => void;
   clear: () => void;
 }
@@ -27,6 +28,11 @@ export const useCompareStore = create<CompareState>()(
         if (ids.length >= COMPARE_MAX) return 'full';
         set({ ids: [...ids, id] });
         return 'added';
+      },
+      replaceAll: (next) => {
+        const unique = [...new Set(next)].slice(0, COMPARE_MAX);
+        set({ ids: unique });
+        return unique.length;
       },
       remove: (id) => set({ ids: get().ids.filter((x) => x !== id) }),
       clear: () => set({ ids: [] }),

@@ -383,6 +383,38 @@ export const translations: Record<Lang, Record<string, string>> = {
 
     'article.prevStory': 'Previous Story',
     'article.nextStory': 'Next Story',
+
+    'announcement.fresh': 'New harvests land at the market every week',
+    'footer.admin': "Storekeeper's Desk",
+    'receipt.print': 'Print Receipt',
+
+    'wishlist.compare': 'Compare Saved',
+    'wishlist.compareFew': 'Save at least two harvests to compare them.',
+
+    'admin.eyebrow': 'Back of House',
+    'admin.title': "The Storekeeper's Desk",
+    'admin.subtitle':
+      'A quiet look behind the harvest — orders wrapped, journals subscribed, tables talking back. This demo desk reads live data from this browser.',
+    'admin.demoNote': 'Demo · Live Sandbox Data',
+    'admin.stat.revenue': 'Harvest revenue',
+    'admin.stat.orders': 'Orders placed',
+    'admin.stat.newsletter': 'Journal subscribers',
+    'admin.stat.reviews': 'Community reviews',
+    'admin.recentOrders': 'Recent Orders',
+    'admin.ordersEmpty': 'No orders yet — the first harvest awaits its first table.',
+    'admin.th.order': 'Order',
+    'admin.th.customer': 'Customer',
+    'admin.th.items': 'Items',
+    'admin.giftWrap': 'Gift wrapped',
+    'admin.lowStock': 'Low-Stock Watch',
+    'admin.stockHealthy': 'Every shelf is full — nothing runs short this week.',
+    'admin.left': 'left',
+    'admin.moderation': 'Review Moderation',
+    'admin.pending': 'on the desk',
+    'admin.reviewsEmpty': 'No community reviews yet — notes from tables will gather here.',
+    'admin.delete': 'Remove review',
+    'admin.deleted': 'Review removed from the journal wall.',
+    'admin.deleteFailed': 'Could not remove that review. Please try again.',
   },
 
   kh: {
@@ -762,6 +794,38 @@ export const translations: Record<Lang, Record<string, string>> = {
 
     'article.prevStory': 'រឿងរ៉ាវមុន',
     'article.nextStory': 'រឿងរ៉ាវបន្ទាប់',
+
+    'announcement.fresh': 'ផលដំណំថ្មីមកដល់ផ្សាររាល់សប្តាហ៍',
+    'footer.admin': 'ផ្ទាំងគ្រប់គ្រង',
+    'receipt.print': 'បោះពុម្ពវិក្កយបត្រ',
+
+    'wishlist.compare': 'ប្រៀបធៀបការរក្សាទុក',
+    'wishlist.compareFew': 'សូមរក្សាទុកយ៉ាងតិចពីរផលដំណំ ដើម្បីប្រៀបធៀប។',
+
+    'admin.eyebrow': 'កន្លែងក្រោយឆាក',
+    'admin.title': 'ផ្ទាំងគ្រប់គ្រងរបស់អ្នកផ្ទះ',
+    'admin.subtitle':
+      'ទិដ្ឋភាពស្ងាត់ៗនៅក្រោយរដូវចម្ការ — ការបញ្ជាទិញ អ្នកតាមដាន និងមតិយោបល់ពីតុអាហារ។ ផ្ទាំងសាកល្បងនេះអានទិន្នន័យផ្ទាល់ពីកម្មវិធីរុករកនេះ។',
+    'admin.demoNote': 'សាកល្បង · ទិន្នន័យផ្ទាល់',
+    'admin.stat.revenue': 'ចំណូលរដូវចម្ការ',
+    'admin.stat.orders': 'ការបញ្ជាទិញ',
+    'admin.stat.newsletter': 'អ្នកតាមដានទស្សនាវដ្ដី',
+    'admin.stat.reviews': 'មតិយោបល់សហគមន៍',
+    'admin.recentOrders': 'ការបញ្ជាទិញថ្មីៗ',
+    'admin.ordersEmpty': 'មិនមានការបញ្ជាទិញទេ — រដូវចម្ការដំបូងកំពុងរង់ចាំតុដំបូង។',
+    'admin.th.order': 'ការបញ្ជាទិញ',
+    'admin.th.customer': 'អតិថិជន',
+    'admin.th.items': 'ទំនិញ',
+    'admin.giftWrap': 'ខ្ចប់ជាកាដូ',
+    'admin.lowStock': 'តាមដានស្តុកតិច',
+    'admin.stockHealthy': 'ធ្នើរទាំងអស់ពេញលើត — គ្មានអ្វីខ្វះក្នុងសប្តាហ៍នេះ។',
+    'admin.left': 'នៅសល់',
+    'admin.moderation': 'ត្រួតពិនិត្យមតិយោបល់',
+    'admin.pending': 'នៅលើផ្ទាំង',
+    'admin.reviewsEmpty': 'មិនមានមតិយោបល់សហគមន៍ទេ — សំណេរពីតុអាហារនឹងប្រមូលផ្តុំនៅទីនេះ។',
+    'admin.delete': 'លុបមតិយោបល់',
+    'admin.deleted': 'បានលុបមតិយោបល់ចេញពីជញ្ជាំងទស្សនាវដ្ដី។',
+    'admin.deleteFailed': 'មិនអាចលុបមតិយោបល់នេះបានទេ។ សូមព្យាយាមម្តងទៀត។',
   },
 };
 

@@ -151,7 +151,7 @@ export function Navbar() {
   return (
     <header
       className={cn(
-        'sticky top-0 z-40 border-b transition-all duration-500',
+        'sticky top-0 z-40 border-b transition-all duration-500 print:hidden',
         overHero
           ? 'border-transparent bg-transparent text-ivory'
           : 'border-charcoal/10 bg-ivory/95 text-charcoal backdrop-blur-md',

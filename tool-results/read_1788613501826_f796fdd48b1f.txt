@@ -1,0 +1,750 @@
+     1→'use client';
+     2→
+     3→import { useEffect, useMemo, useRef, useState } from 'react';
+     4→import { useQuery } from '@tanstack/react-query';
+     5→import { toast } from 'sonner';
+     6→import { ArrowLeft, ArrowRight, Check, Heart, Leaf, Recycle, ZoomIn } from 'lucide-react';
+     7→import type { ProvinceId, ViewProps } from '@/lib/types';
+     8→import { fetchFarmers, fetchProduct, fetchProducts } from '@/lib/api';
+     9→import { useLang } from '@/lib/stores/lang';
+    10→import { useRouterStore } from '@/lib/stores/router';
+    11→import { useCartStore } from '@/lib/stores/cart';
+    12→import { useWishlistStore } from '@/lib/stores/wishlist';
+    13→import { useRecentStore } from '@/lib/stores/recent';
+    14→import { useCompareStore } from '@/lib/stores/compare';
+    15→import { useUIStore } from '@/lib/stores/ui';
+    16→import { useMounted } from '@/lib/hooks';
+    17→import { useSeo } from '@/lib/useSeo';
+    18→import { getCategory } from '@/lib/data/categories';
+    19→import { getProvince, provinceName } from '@/lib/data/provinces';
+    20→import { EmptyState } from '@/components/shared/EmptyState';
+    21→import { ProductCard, formatPrice } from '@/components/shared/ProductCard';
+    22→import { QuantityStepper } from '@/components/shared/QuantityStepper';
+    23→import { RatingStars } from '@/components/shared/RatingStars';
+    24→import { Reveal } from '@/components/shared/Reveal';
+    25→import { SectionHeading } from '@/components/shared/SectionHeading';
+    26→import { ShareButtons } from '@/components/shared/ShareButtons';
+    27→import { SmartImage } from '@/components/shared/SmartImage';
+    28→import { OriginChain } from '@/components/product/OriginChain';
+    29→import { ProductReviews } from '@/components/product/ProductReviews';
+    30→import {
+    31→  Accordion,
+    32→  AccordionContent,
+    33→  AccordionItem,
+    34→  AccordionTrigger,
+    35→} from '@/components/ui/accordion';
+    36→import { cn } from '@/lib/utils';
+    37→
+    38→// ─── ProductView — gallery, craft details, origin story & related harvests ────
+    39→
+    40→export default function ProductView({ view }: ViewProps) {
+    41→  const { t, lang } = useLang();
+    42→  const navigate = useRouterStore((s) => s.navigate);
+    43→  const add = useCartStore((s) => s.add);
+    44→  const toggleWishlist = useWishlistStore((s) => s.toggle);
+    45→  const wishlistIds = useWishlistStore((s) => s.ids);
+    46→  const recordRecent = useRecentStore((s) => s.record);
+    47→  const recentSlugs = useRecentStore((s) => s.slugs);
+    48→  const mounted = useMounted();
+    49→
+    50→  const slug = view.name === 'product' ? view.slug : '';
+    51→
+    52→  // ── Data ────────────────────────────────────────────────────────────────────
+    53→  const {
+    54→    data: product,
+    55→    isError,
+    56→  } = useQuery({
+    57→    queryKey: ['product', slug],
+    58→    queryFn: () => fetchProduct(slug),
+    59→    enabled: slug.length > 0,
+    60→  });
+    61→  const { data: farmers } = useQuery({ queryKey: ['farmers'], queryFn: fetchFarmers });
+    62→  const { data: allProducts } = useQuery({ queryKey: ['products'], queryFn: fetchProducts });
+    63→
+    64→  const farmer = useMemo(
+    65→    () => farmers?.find((f) => f.id === product?.farmerId),
+    66→    [farmers, product?.farmerId],
+    67→  );
+    68→  const prov = useMemo(() => (product ? getProvince(product.province) : undefined), [product]);
+    69→
+    70→  // ── Local state ─────────────────────────────────────────────────────────────
+    71→  const [activeImage, setActiveImage] = useState(0);
+    72→  const [selectedSize, setSelectedSize] = useState('');
+    73→  const [qty, setQty] = useState(1);
+    74→  const [justAdded, setJustAdded] = useState(false);
+    75→  // Sticky mobile buy bar — appears once the main buy box scrolls away.
+    76→  const [showStickyBar, setShowStickyBar] = useState(false);
+    77→  // The compare tray owns the bottom edge while active — yield to it.
+    78→  const trayActive = useCompareStore((s) => s.ids.length > 0);
+    79→  const setBottomBarActive = useUIStore((s) => s.setBottomBarActive);
+    80→  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+    81→  // Lens zoom — cursor-following magnification on fine-pointer devices.
+    82→  const lensWrapRef = useRef<HTMLDivElement>(null);
+    83→  // Mobile sticky add-to-cart — appears once the main buy box scrolls away.
+    84→  const buyBoxRef = useRef<HTMLDivElement>(null);
+    85→
+    86→  // Selection state initialises from the loaded product; the keyed view wrapper remounts
+    87→  // this component on navigation, so no reset effect is required.
+    88→
+    89→  // Clear the “Added ✓” timer on unmount.
+    90→  useEffect(() => () => {
+    91→    if (timer.current) clearTimeout(timer.current);
+    92→  }, []);
+    93→
+    94→  // Track this product in the recently-viewed history — only once it has
+    95→  // actually loaded, so failed/unknown slugs never pollute the history.
+    96→  useEffect(() => {
+    97→    if (product) recordRecent(product.slug);
+    98→  }, [product?.id, recordRecent]);
+    99→
+   100→  // Sticky mobile buy bar — watches the main actions block; the fixed bar
+   101→  // slides in only while that block is above the viewport (mobile/tablet).
+   102→  useEffect(() => {
+   103→    const node = buyBoxRef.current;
+   104→    if (!node || typeof IntersectionObserver === 'undefined') return;
+   105→    const observer = new IntersectionObserver(
+   106→      ([entry]) => {
+   107→        const show = !entry.isIntersecting && entry.boundingClientRect.top < 0;
+   108→        setShowStickyBar(show);
+   109→        setBottomBarActive(show);
+   110→      },
+   111→      { rootMargin: '-72px 0px 0px 0px' },
+   112→    );
+   113→    observer.observe(node);
+   114→    return () => {
+   115→      observer.disconnect();
+   116→      setBottomBarActive(false);
+   117→    };
+   118→  }, [product, setBottomBarActive]);
+   119→
+   120→  // ── Gallery (product → farm → province) ─────────────────────────────────────
+   121→  const gallery = useMemo(() => {
+   122→    if (!product) return [];
+   123→    const images: { src: string; alt: string }[] = [
+   124→      { src: product.image, alt: product.name },
+   125→    ];
+   126→    if (farmer?.farmImage) images.push({ src: farmer.farmImage, alt: `${farmer.name} — the farm` });
+   127→    if (prov) images.push({ src: prov.image, alt: `${prov.name}, Cambodia — ${prov.tagline}` });
+   128→    return images;
+   129→  }, [product, farmer, prov]);
+   130→
+   131→  // ── Related products (same category, topped up with same province) ──────────
+   132→  const related = useMemo(() => {
+   133→    if (!product || !allProducts) return [];
+   134→    const sameCategory = allProducts.filter(
+   135→      (p) => p.id !== product.id && p.category === product.category,
+   136→    );
+   137→    const sameProvince = allProducts.filter(
+   138→      (p) =>
+   139→        p.id !== product.id &&
+   140→        p.category !== product.category &&
+   141→        p.province === product.province,
+   142→    );
+   143→    return [...sameCategory, ...sameProvince].slice(0, 4);
+   144→  }, [product, allProducts]);
+   145→
+   146→  // ── Recently viewed (history strip, excludes the current product) ───────────
+   147→  const recentProducts = useMemo(() => {
+   148→    if (!product || !allProducts) return [];
+   149→    return recentSlugs
+   150→      .filter((s) => s !== product.slug)
+   151→      .map((s) => allProducts.find((p) => p.slug === s))
+   152→      .filter((p): p is NonNullable<typeof p> => Boolean(p))
+   153→      .slice(0, 4);
+   154→  }, [product, allProducts, recentSlugs]);
+   155→
+   156→  // SEO — refines the base title once the product resolves (hook is called
+   157→  // unconditionally to keep the hook order stable across loading states).
+   158→  useSeo(
+   159→    product ? `${product.name} — ${product.farmerName} | Sovann Farm` : undefined,
+   160→    product
+   161→      ? `${product.description} Grown in ${provinceName(product.province)}, Cambodia.`
+   162→      : undefined,
+   163→  );
+   164→
+   165→  // ── Loading / not found ─────────────────────────────────────────────────────
+   166→  if (product === undefined && !isError) {
+   167→    return <ProductViewSkeleton />;
+   168→  }
+   169→
+   170→  // ── Not found ───────────────────────────────────────────────────────────────
+   171→  if (!product) {
+   172→    return (
+   173→      <div className="container-editorial py-24">
+   174→        <EmptyState
+   175→          title={t('shop.empty')}
+   176→          description={t('shop.emptyDesc')}
+   177→          action={
+   178→            <button
+   179→              type="button"
+   180→              onClick={() => navigate({ name: 'shop' })}
+   181→              className="btn-primary"
+   182→            >
+   183→              {t('product.shop')}
+   184→            </button>
+   185→          }
+   186→        />
+   187→      </div>
+   188→    );
+   189→  }
+   190→
+   191→  // ── Derived content ─────────────────────────────────────────────────────────
+   192→  const name = lang === 'kh' && product.nameKh ? product.nameKh : product.name;
+   193→  const categoryData = getCategory(product.category);
+   194→  const categoryNameValue = categoryData
+   195→    ? lang === 'kh'
+   196→      ? categoryData.nameKh
+   197→      : categoryData.name
+   198→    : null;
+   199→  const provinceLabel =
+   200→    product.province === 'multi'
+   201→      ? lang === 'kh'
+   202→        ? 'ខេត្តច្រើន'
+   203→        : 'Multiple Provinces'
+   204→      : lang === 'kh'
+   205→        ? (prov?.nameKh ?? provinceName(product.province))
+   206→        : provinceName(product.province);
+   207→
+   208→  const sizeOptions = product.sizes;
+   209→  const selectedSizeObj =
+   210→    sizeOptions.find((s) => s.label === selectedSize) ?? sizeOptions[0];
+   211→  const activeSrc = gallery[Math.min(activeImage, Math.max(gallery.length - 1, 0))]?.src ?? product.image;
+   212→  const activeAlt =
+   213→    gallery[Math.min(activeImage, Math.max(gallery.length - 1, 0))]?.alt ?? product.name;
+   214→
+   215→  const lensMove = (e: React.MouseEvent<HTMLDivElement>) => {
+   216→    if (typeof window !== 'undefined' && !window.matchMedia('(pointer: fine)').matches) return;
+   217→    const wrap = lensWrapRef.current;
+   218→    const target = wrap?.firstElementChild as HTMLElement | null;
+   219→    if (!wrap || !target) return;
+   220→    const r = wrap.getBoundingClientRect();
+   221→    const x = ((e.clientX - r.left) / r.width) * 100;
+   222→    const y = ((e.clientY - r.top) / r.height) * 100;
+   223→    wrap.classList.add('is-lensing');
+   224→    target.style.transformOrigin = `${x}% ${y}%`;
+   225→    target.style.transform = 'scale(1.8)';
+   226→  };
+   227→
+   228→  const lensLeave = () => {
+   229→    const wrap = lensWrapRef.current;
+   230→    const target = wrap?.firstElementChild as HTMLElement | null;
+   231→    wrap?.classList.remove('is-lensing');
+   232→    if (target) {
+   233→      target.style.transform = 'scale(1)';
+   234→      target.style.transformOrigin = 'center center';
+   235→    }
+   236→  };
+   237→
+   238→  const wished = wishlistIds.includes(product.id);
+   239→  const farmerSlug =
+   240→    farmer?.slug ??
+   241→    (product.farmerId && product.farmerId.startsWith('f-') ? product.farmerId.slice(2) : null);
+   242→  const localizedProvince = (id: ProvinceId) =>
+   243→    lang === 'kh' ? (getProvince(id)?.nameKh ?? provinceName(id)) : provinceName(id);
+   244→
+   245→  const handleAdd = () => {
+   246→    if (product.stock <= 0) return;
+   247→    add(product.id, selectedSizeObj?.label ?? '', qty);
+   248→    setJustAdded(true);
+   249→    if (timer.current) clearTimeout(timer.current);
+   250→    timer.current = setTimeout(() => setJustAdded(false), 1600);
+   251→    toast.success(`${name} — ${t('common.added')}`);
+   252→  };
+   253→
+   254→  const handleWishlist = () => {
+   255→    toggleWishlist(product.id);
+   256→  };
+   257→
+   258→  const goFarmer = () => {
+   259→    if (farmerSlug) navigate({ name: 'farmer', slug: farmerSlug });
+   260→  };
+   261→
+   262→  const accordionTrigger =
+   263→    'rounded-none py-5 text-[11px] font-bold uppercase tracking-[0.26em] text-charcoal hover:no-underline hover:text-forest';
+   264→
+   265→  return (
+   266→    <div>
+   267→      {/* ── Breadcrumb + back ──────────────────────────────────────────────── */}
+   268→      <div className="container-editorial pt-10 md:pt-14">
+   269→        <button
+   270→          type="button"
+   271→          onClick={() => navigate({ name: 'shop' })}
+   272→          className="flex cursor-pointer items-center gap-2 text-[11px] font-bold uppercase tracking-[0.22em] text-stone transition-colors hover:text-forest focus-visible:outline-2 focus-visible:outline-gold"
+   273→        >
+   274→          <ArrowLeft className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden="true" />
+   275→          {t('product.shop')}
+   276→        </button>
+   277→        <nav
+   278→          aria-label="Breadcrumb"
+   279→          className="mt-4 flex flex-wrap items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.22em]"
+   280→        >
+   281→          <button
+   282→            type="button"
+   283→            onClick={() => navigate({ name: 'shop' })}
+   284→            className="cursor-pointer text-stone transition-colors hover:text-forest focus-visible:outline-2 focus-visible:outline-gold"
+   285→          >
+   286→            {t('product.shop')}
+   287→          </button>
+   288→          {categoryNameValue && (
+   289→            <>
+   290→              <span className="text-charcoal/25" aria-hidden="true">/</span>
+   291→              <button
+   292→                type="button"
+   293→                onClick={() => navigate({ name: 'shop', category: product.category })}
+   294→                className="cursor-pointer text-stone transition-colors hover:text-forest focus-visible:outline-2 focus-visible:outline-gold"
+   295→              >
+   296→                {categoryNameValue}
+   297→              </button>
+   298→            </>
+   299→          )}
+   300→          <span className="text-charcoal/25" aria-hidden="true">/</span>
+   301→          <span className="text-charcoal" aria-current="page">{name}</span>
+   302→        </nav>
+   303→
+   304→        {/* ── Main grid ──────────────────────────────────────────────────────── */}
+   305→        <div className="grid gap-12 pb-20 pt-8 lg:grid-cols-2 lg:gap-16">
+   306→          {/* LEFT — gallery */}
+   307→          <div>
+   308→            <div
+   309→              ref={lensWrapRef}
+   310→              className="lens-wrap relative overflow-hidden border border-charcoal/10 bg-parchment"
+   311→              onMouseMove={lensMove}
+   312→              onMouseLeave={lensLeave}
+   313→            >
+   314→              <div className="lens-target">
+   315→                <SmartImage
+   316→                  key={activeSrc}
+   317→                  src={activeSrc}
+   318→                  alt={activeAlt}
+   319→                  ratio="portrait"
+   320→                  priority
+   321→                />
+   322→              </div>
+   323→              <span
+   324→                aria-hidden="true"
+   325→                className="zoom-hint pointer-events-none absolute bottom-3 right-3 hidden items-center gap-1.5 bg-ivory/90 px-2.5 py-1.5 text-[9px] font-bold uppercase tracking-[0.22em] text-charcoal/70 transition-opacity duration-300 md:inline-flex"
+   326→              >
+   327→                <ZoomIn className="h-3 w-3" strokeWidth={1.5} />
+   328→                {t('product.zoomHint')}
+   329→              </span>
+   330→            </div>
+   331→            <div className="mt-4 flex gap-3" role="group" aria-label={`${name} gallery`}>
+   332→              {gallery.map((image, i) => (
+   333→                <button
+   334→                  key={`${image.src}-${i}`}
+   335→                  type="button"
+   336→                  onClick={() => setActiveImage(i)}
+   337→                  aria-pressed={activeImage === i}
+   338→                  aria-label={`View image ${i + 1} — ${image.alt}`}
+   339→                  className={cn(
+   340→                    'relative h-20 w-24 cursor-pointer overflow-hidden border bg-parchment transition-all duration-300 focus-visible:outline-2 focus-visible:outline-gold',
+   341→                    activeImage === i
+   342→                      ? 'border-gold shadow-[0_10px_24px_-14px_rgba(201,162,39,0.7)]'
+   343→                      : 'border-charcoal/15 hover:border-charcoal/40',
+   344→                  )}
+   345→                >
+   346→                  <SmartImage src={image.src} alt="" ratio="none" className="h-full w-full" />
+   347→                </button>
+   348→              ))}
+   349→            </div>
+   350→          </div>
+   351→
+   352→          {/* RIGHT — details */}
+   353→          <div>
+   354→            <p className="eyebrow text-terracotta">
+   355→              {provinceLabel} · {categoryNameValue}
+   356→            </p>
+   357→            <h1 className="mt-4 font-display text-4xl leading-[1.06] tracking-tight text-charcoal md:text-5xl">
+   358→              {name}
+   359→            </h1>
+   360→            {lang !== 'kh' && product.nameKh && (
+   361→              <p className="mt-2 font-khmer text-base text-stone">{product.nameKh}</p>
+   362→            )}
+   363→
+   364→            <div className="mt-5">
+   365→              <button
+   366→                type="button"
+   367→                onClick={() =>
+   368→                  document.getElementById('reviews')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+   369→                }
+   370→                aria-label={`${product.rating} ${t('product.reviews')} — ${t('reviews.title')}`}
+   371→                className="cursor-pointer transition-opacity hover:opacity-80 focus-visible:outline-2 focus-visible:outline-gold"
+   372→              >
+   373→                <RatingStars
+   374→                  value={product.rating}
+   375→                  size="md"
+   376→                  showValue
+   377→                  reviews={product.reviews}
+   378→                  reviewsLabel={t('product.reviews')}
+   379→                />
+   380→              </button>
+   381→            </div>
+   382→
+   383→            <div className="mt-6 flex items-baseline gap-3">
+   384→              <p className="font-display text-3xl tracking-tight text-charcoal">
+   385→                {formatPrice(selectedSizeObj?.price ?? product.price)}
+   386→              </p>
+   387→              {selectedSizeObj && (
+   388→                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-stone">
+   389→                  / {selectedSizeObj.label}
+   390→                </p>
+   391→              )}
+   392→            </div>
+   393→
+   394→            <p className="mt-6 max-w-xl text-base leading-relaxed text-stone">
+   395→              {product.description}
+   396→            </p>
+   397→
+   398→            {/* Share this harvest */}
+   399→            <ShareButtons title={name} className="mt-5" tone="light" />
+   400→
+   401→            <div className="rule mt-8" />
+   402→
+   403→            {/* Size */}
+   404→            <div className="mt-8">
+   405→              <p className="eyebrow text-stone">{t('product.size')}</p>
+   406→              <div
+   407→                className="mt-3 flex flex-wrap gap-2"
+   408→                role="radiogroup"
+   409→                aria-label={t('product.size')}
+   410→              >
+   411→                {sizeOptions.map((s) => {
+   412→                  const active = (selectedSize || sizeOptions[0]?.label) === s.label;
+   413→                  return (
+   414→                    <button
+   415→                      key={s.label}
+   416→                      type="button"
+   417→                      role="radio"
+   418→                      aria-checked={active}
+   419→                      onClick={() => setSelectedSize(s.label)}
+   420→                      className={cn(
+   421→                        'flex min-h-11 cursor-pointer flex-col items-center justify-center border px-4 py-1.5 transition-all duration-300 focus-visible:outline-2 focus-visible:outline-gold',
+   422→                        active
+   423→                          ? 'border-forest bg-forest text-ivory'
+   424→                          : 'border-charcoal/20 text-charcoal hover:border-forest hover:text-forest',
+   425→                      )}
+   426→                    >
+   427→                      <span className="text-sm font-semibold leading-tight">{s.label}</span>
+   428→                      <span
+   429→                        className={cn(
+   430→                          'text-[10px] font-semibold tabular-nums tracking-wide',
+   431→                          active ? 'text-honey' : 'text-stone',
+   432→                        )}
+   433→                      >
+   434→                        {formatPrice(s.price)}
+   435→                      </span>
+   436→                    </button>
+   437→                  );
+   438→                })}
+   439→              </div>
+   440→            </div>
+   441→
+   442→            {/* Quantity + stock */}
+   443→            <div className="mt-8">
+   444→              <p className="eyebrow text-stone">{t('product.quantity')}</p>
+   445→              <div className="mt-3 flex flex-wrap items-center gap-5">
+   446→                <QuantityStepper value={qty} onChange={setQty} max={Math.max(product.stock, 1)} />
+   447→                {product.stock > 0 ? (
+   448→                  product.stock <= 20 ? (
+   449→                    <span className="flex items-center gap-2.5 text-xs font-semibold uppercase tracking-[0.18em] text-terracotta">
+   450→                      <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-terracotta" aria-hidden="true" />
+   451→                      {t('product.lowStock', { n: product.stock })}
+   452→                    </span>
+   453→                  ) : (
+   454→                    <span className="flex items-center gap-2.5 text-xs font-semibold uppercase tracking-[0.18em] text-moss">
+   455→                      <span className="h-1.5 w-1.5 rounded-full bg-moss" aria-hidden="true" />
+   456→                      {t('product.inStock')} ({product.stock})
+   457→                    </span>
+   458→                  )
+   459→                ) : (
+   460→                  <span className="flex items-center gap-2.5 text-xs font-semibold uppercase tracking-[0.18em] text-terracotta">
+   461→                    <span className="h-1.5 w-1.5 rounded-full bg-terracotta" aria-hidden="true" />
+   462→                    {t('common.soldOut')}
+   463→                  </span>
+   464→                )}
+   465→              </div>
+   466→            </div>
+   467→
+   468→            {/* Actions */}
+   469→            <div ref={buyBoxRef} className="mt-10 space-y-3">
+   470→              <button
+   471→                type="button"
+   472→                onClick={handleAdd}
+   473→                disabled={product.stock <= 0}
+   474→                className={cn(
+   475→                  'btn-primary h-14 w-full text-xs disabled:cursor-not-allowed disabled:opacity-40',
+   476→                  justAdded && 'bg-gold text-forest-deep',
+   477→                )}
+   478→              >
+   479→                {justAdded ? (
+   480→                  <>
+   481→                    <Check className="h-4 w-4" strokeWidth={2} aria-hidden="true" />
+   482→                    {t('common.added')}
+   483→                  </>
+   484→                ) : (
+   485→                  t('common.addToCart')
+   486→                )}
+   487→              </button>
+   488→              <button
+   489→                type="button"
+   490→                onClick={handleWishlist}
+   491→                aria-pressed={wished}
+   492→                className="btn-outline w-full"
+   493→              >
+   494→                <Heart
+   495→                  className={cn('h-4 w-4', wished && 'fill-terracotta text-terracotta')}
+   496→                  strokeWidth={1.5}
+   497→                  aria-hidden="true"
+   498→                />
+   499→                {t('product.wishlist')}
+   500→              </button>
+   501→            </div>
+   502→
+   503→            {/* Meta accordion */}
+   504→            <Accordion type="single" collapsible className="mt-10">
+   505→              <AccordionItem value="origin" className="border-charcoal/10">
+   506→                <AccordionTrigger className={accordionTrigger}>
+   507→                  {t('product.origin')}
+   508→                </AccordionTrigger>
+   509→                <AccordionContent className="text-sm leading-relaxed text-stone">
+   510→                  <p className="font-semibold text-charcoal">
+   511→                    {provinceLabel}, Cambodia
+   512→                  </p>
+   513→                  {prov?.description && <p className="mt-2">{prov.description}</p>}
+   514→                </AccordionContent>
+   515→              </AccordionItem>
+   516→
+   517→              <AccordionItem value="farmer" className="border-charcoal/10">
+   518→                <AccordionTrigger className={accordionTrigger}>
+   519→                  {t('product.farmer')}
+   520→                </AccordionTrigger>
+   521→                <AccordionContent className="text-sm leading-relaxed text-stone">
+   522→                  <p className="font-semibold text-charcoal">{product.farmerName}</p>
+   523→                  {farmer && (
+   524→                    <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-stone">
+   525→                      {lang === 'kh' && farmer.roleKh ? farmer.roleKh : farmer.role} ·{' '}
+   526→                      {localizedProvince(farmer.province)}
+   527→                    </p>
+   528→                  )}
+   529→                  <button
+   530→                    type="button"
+   531→                    onClick={goFarmer}
+   532→                    disabled={!farmerSlug}
+   533→                    className="mt-4 inline-flex cursor-pointer items-center gap-2 border border-charcoal/25 px-4 py-2.5 text-[10px] font-bold uppercase tracking-[0.22em] text-charcoal transition-all duration-300 hover:border-forest hover:bg-forest hover:text-ivory focus-visible:outline-2 focus-visible:outline-gold disabled:cursor-not-allowed disabled:opacity-40"
+   534→                  >
+   535→                    {t('product.meetFarmer')}
+   536→                    <ArrowRight className="h-3 w-3" strokeWidth={1.5} aria-hidden="true" />
+   537→                  </button>
+   538→                </AccordionContent>
+   539→              </AccordionItem>
+   540→
+   541→              <AccordionItem value="production" className="border-charcoal/10">
+   542→                <AccordionTrigger className={accordionTrigger}>
+   543→                  {t('product.production')}
+   544→                </AccordionTrigger>
+   545→                <AccordionContent className="text-sm leading-relaxed text-stone">
+   546→                  <div className="flex flex-wrap gap-2">
+   547→                    {product.organic && (
+   548→                      <span className="flex items-center gap-2 border border-moss/40 bg-moss/10 px-3 py-2 text-[10px] font-bold uppercase tracking-[0.2em] text-moss">
+   549→                        <Leaf className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden="true" />
+   550→                        {t('common.organic')}
+   551→                      </span>
+   552→                    )}
+   553→                    {product.sustainable && (
+   554→                      <span className="flex items-center gap-2 border border-forest/30 bg-forest/5 px-3 py-2 text-[10px] font-bold uppercase tracking-[0.2em] text-forest">
+   555→                        <Recycle className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden="true" />
+   556→                        {t('common.sustainable')}
+   557→                      </span>
+   558→                    )}
+   559→                    {!product.organic && !product.sustainable && (
+   560→                      <p>
+   561→                        {product.farmerName} · {product.unit}
+   562→                      </p>
+   563→                    )}
+   564→                  </div>
+   565→                </AccordionContent>
+   566→              </AccordionItem>
+   567→
+   568→              <AccordionItem value="shipping" className="border-charcoal/10">
+   569→                <AccordionTrigger className={accordionTrigger}>
+   570→                  {t('product.shipping')}
+   571→                </AccordionTrigger>
+   572→                <AccordionContent className="text-sm leading-relaxed text-stone">
+   573→                  <p>{t('product.shippingValue')}</p>
+   574→                  <p className="mt-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-stone">
+   575→                    {t('announcement.shipping')}
+   576→                  </p>
+   577→                </AccordionContent>
+   578→              </AccordionItem>
+   579→            </Accordion>
+   580→
+   581→            {/* Farmer card */}
+   582→            {farmer && (
+   583→              <div className="card-editorial mt-8 flex flex-col gap-4 p-5 sm:flex-row sm:items-center">
+   584→                <SmartImage
+   585→                  src={farmer.portrait}
+   586→                  alt={farmer.name}
+   587→                  ratio="none"
+   588→                  className="h-20 w-20 shrink-0 border border-charcoal/10"
+   589→                />
+   590→                <div className="min-w-0 flex-1">
+   591→                  <p className="font-display text-lg leading-tight text-charcoal">{farmer.name}</p>
+   592→                  <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.22em] text-stone">
+   593→                    {lang === 'kh' && farmer.roleKh ? farmer.roleKh : farmer.role} ·{' '}
+   594→                    {localizedProvince(farmer.province)}
+   595→                  </p>
+   596→                  <p className="mt-2 line-clamp-2 text-sm italic leading-relaxed text-stone">
+   597→                    “{farmer.quote}”
+   598→                  </p>
+   599→                </div>
+   600→                <button
+   601→                  type="button"
+   602→                  onClick={goFarmer}
+   603→                  className="btn-outline h-10 shrink-0 px-4 text-[10px]"
+   604→                >
+   605→                  {t('common.meetFarmer')}
+   606→                </button>
+   607→              </div>
+   608→            )}
+   609→          </div>
+   610→        </div>
+   611→      </div>
+   612→
+   613→      {/* ── Sticky mobile buy bar — follows the shopper once the buy box scrolls away */}
+   614→      {showStickyBar && !trayActive && (
+   615→        <div
+   616→          className="compare-tray fixed inset-x-0 bottom-0 z-40 border-t border-charcoal/10 bg-ivory/95 pb-[max(env(safe-area-inset-bottom),0.5rem)] pt-3 backdrop-blur-md lg:hidden"
+   617→          aria-label={t('common.addToCart')}
+   618→        >
+   619→          <div className="container-editorial flex items-center gap-3">
+   620→            <SmartImage
+   621→              src={product.image}
+   622→              alt=""
+   623→              ratio="none"
+   624→              className="hidden h-12 w-12 shrink-0 border border-charcoal/10 sm:block"
+   625→            />
+   626→            <div className="min-w-0 flex-1">
+   627→              <p className="truncate text-sm font-semibold text-charcoal">{name}</p>
+   628→              <p className="text-xs text-stone tabular-nums">
+   629→                {formatPrice(selectedSizeObj?.price ?? product.price)} ·{' '}
+   630→                {selectedSizeObj?.label}
+   631→              </p>
+   632→            </div>
+   633→            <button
+   634→              type="button"
+   635→              onClick={handleAdd}
+   636→              disabled={product.stock <= 0}
+   637→              className={cn(
+   638→                'btn-primary h-12 shrink-0 px-5 text-[10px] disabled:cursor-not-allowed disabled:opacity-40',
+   639→                justAdded && 'bg-gold text-forest-deep',
+   640→              )}
+   641→            >
+   642→              {justAdded ? (
+   643→                <>
+   644→                  <Check className="h-4 w-4" strokeWidth={2} aria-hidden="true" />
+   645→                  {t('common.added')}
+   646→                </>
+   647→              ) : (
+   648→                t('common.addToCart')
+   649→              )}
+   650→            </button>
+   651→          </div>
+   652→        </div>
+   653→      )}
+   654→
+   655→      {/* ── The Origin — map → province → farm → product ────────────────────── */}
+   656→      <section className="border-t border-charcoal/10 py-20 md:py-24">
+   657→        <div className="container-editorial">
+   658→          <SectionHeading
+   659→            eyebrow="THE ORIGIN"
+   660→            title={t('product.story.title')}
+   661→            subtitle={t('product.story.subtitle')}
+   662→          />
+   663→          <div className="mt-14">
+   664→            <OriginChain product={product} province={prov} farmer={farmer} />
+   665→          </div>
+   666→          <div className="mt-16 max-w-3xl">
+   667→            <p className="font-display text-lg leading-loose text-charcoal/85 md:text-xl">
+   668→              {product.story}
+   669→            </p>
+   670→            {prov?.description && (
+   671→              <p className="mt-8 text-base leading-relaxed text-stone">{prov.description}</p>
+   672→            )}
+   673→          </div>
+   674→        </div>
+   675→      </section>
+   676→
+   677→      {/* ── Reviews ─────────────────────────────────────────────────────────── */}
+   678→      <section
+   679→        id="reviews"
+   680→        className="scroll-mt-24 border-t border-charcoal/10 py-20 md:py-24"
+   681→        aria-label={t('reviews.title')}
+   682→      >
+   683→        <div className="container-editorial">
+   684→          <ProductReviews product={product} />
+   685→        </div>
+   686→      </section>
+   687→
+   688→      {/* ── Related harvests ────────────────────────────────────────────────── */}
+   689→      {related.length > 0 && (
+   690→        <section className="border-t border-charcoal/10 py-20 md:py-24">
+   691→          <div className="container-editorial">
+   692→            <SectionHeading title={t('product.related')} />
+   693→            <div className="mt-10 grid grid-cols-2 gap-4 md:gap-5 lg:grid-cols-4">
+   694→              {related.map((p, i) => (
+   695→                <Reveal key={p.id} className="h-full" delay={(i % 4) * 70}>
+   696→                  <ProductCard product={p} className="h-full w-full" />
+   697→                </Reveal>
+   698→              ))}
+   699→            </div>
+   700→          </div>
+   701→        </section>
+   702→      )}
+   703→
+   704→      {/* ── Recently viewed ─────────────────────────────────────────────────── */}
+   705→      {mounted && recentProducts.length > 0 && (
+   706→        <section
+   707→          className="border-t border-charcoal/10 bg-parchment/40 py-16 md:py-20"
+   708→          aria-label={t('product.recentlyViewed')}
+   709→        >
+   710→          <div className="container-editorial">
+   711→            <p className="eyebrow flex items-center gap-3 text-terracotta">
+   712→              <span className="inline-block h-px w-10 bg-current opacity-60" aria-hidden="true" />
+   713→              {t('product.recentlyViewed')}
+   714→            </p>
+   715→            <div className="mt-8 grid grid-cols-2 gap-4 md:gap-5 lg:grid-cols-4">
+   716→              {recentProducts.map((p, i) => (
+   717→                <Reveal key={p.id} className="h-full" delay={(i % 4) * 70}>
+   718→                  <ProductCard product={p} className="h-full w-full" />
+   719→                </Reveal>
+   720→              ))}
+   721→            </div>
+   722→          </div>
+   723→        </section>
+   724→      )}
+   725→    </div>
+   726→  );
+   727→}
+   728→
+   729→// ─── Skeleton — calm pulses while the harvest loads ───────────────────────────
+   730→
+   731→function ProductViewSkeleton() {
+   732→  return (
+   733→    <div className="container-editorial py-16" aria-busy="true" aria-label="Loading">
+   734→      <div className="h-3 w-44 animate-pulse bg-parchment" />
+   735→      <div className="mt-8 grid gap-12 lg:grid-cols-2">
+   736→        <div className="aspect-[4/5] animate-pulse bg-parchment" />
+   737→        <div className="space-y-5">
+   738→          <div className="h-3 w-36 animate-pulse bg-parchment" />
+   739→          <div className="h-12 w-3/4 animate-pulse bg-parchment" />
+   740→          <div className="h-4 w-1/2 animate-pulse bg-parchment" />
+   741→          <div className="h-9 w-32 animate-pulse bg-parchment" />
+   742→          <div className="h-20 w-full max-w-md animate-pulse bg-parchment" />
+   743→          <div className="h-11 w-2/3 animate-pulse bg-parchment" />
+   744→          <div className="h-14 w-full max-w-sm animate-pulse bg-parchment" />
+   745→        </div>
+   746→      </div>
+   747→    </div>
+   748→  );
+   749→}
+   750→

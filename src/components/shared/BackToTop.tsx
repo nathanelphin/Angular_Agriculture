@@ -36,7 +36,7 @@ export function BackToTop() {
       aria-label={t('common.backToTop')}
       tabIndex={shown ? 0 : -1}
       className={cn(
-        'fixed bottom-5 right-5 z-40 flex h-11 w-11 items-center justify-center border border-charcoal/20 bg-ivory/95 text-charcoal shadow-[0_14px_34px_-18px_rgba(28,58,42,0.5)] backdrop-blur transition-all duration-500 hover:border-gold hover:text-gold focus-visible:outline-2 focus-visible:outline-gold',
+        'fixed bottom-5 right-5 z-40 flex h-11 w-11 items-center justify-center border border-charcoal/20 bg-ivory/95 text-charcoal shadow-[0_14px_34px_-18px_rgba(28,58,42,0.5)] backdrop-blur transition-all duration-500 hover:border-gold hover:text-gold focus-visible:outline-2 focus-visible:outline-gold print:hidden',
         'pb-[env(safe-area-inset-bottom)]',
         shown
           ? 'pointer-events-auto translate-y-0 opacity-100'

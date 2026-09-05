@@ -55,7 +55,7 @@ export function CompareTray() {
 
       <aside
         aria-label={t('compare.title')}
-        className="compare-tray fixed inset-x-0 bottom-0 z-40 pb-[max(env(safe-area-inset-bottom),0.75rem)] pt-3"
+        className="compare-tray fixed inset-x-0 bottom-0 z-40 pb-[max(env(safe-area-inset-bottom),0.75rem)] pt-3 print:hidden"
       >
         <div className="container-editorial">
           <div className="compare-tray-panel mx-auto flex max-w-3xl flex-col gap-3 border border-ivory/15 bg-forest-deep/95 p-3 shadow-[0_24px_60px_-24px_rgba(18,38,26,0.8)] backdrop-blur-md sm:flex-row sm:items-center sm:gap-4 sm:p-4">

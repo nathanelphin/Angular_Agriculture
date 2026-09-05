@@ -79,7 +79,7 @@ export function Footer() {
     );
 
   return (
-    <footer className="mt-auto border-t border-gold/20 bg-forest text-ivory">
+    <footer className="mt-auto border-t border-gold/20 bg-forest text-ivory print:hidden">
       {/* Subtle Khmer textile band */}
       <KhmerPatternBand className="opacity-70 [&_svg]:text-gold/10!" />
 
@@ -139,6 +139,16 @@ export function Footer() {
             <span className="font-display italic text-gold">{t('footer.tagline')}</span>
           </p>
           <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => navigate({ name: 'admin' })}
+              className={cn(
+                'text-[10px] font-bold uppercase tracking-[0.14em] text-ivory/40 transition-all duration-300 hover:text-gold',
+              )}
+            >
+              {t('footer.admin')}
+            </button>
+            <span className="h-3 w-px bg-ivory opacity-30" aria-hidden="true" />
             <button
               type="button"
               onClick={() => setLang('en')}

@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowLeft, Mail, MapPin, PackageOpen, Phone, Truck } from 'lucide-react';
+import { ArrowLeft, Mail, MapPin, PackageOpen, Phone, Printer, Truck } from 'lucide-react';
 import type { ViewProps } from '@/lib/types';
 import { useOrdersStore } from '@/lib/stores/orders';
 import { useRouterStore } from '@/lib/stores/router';
@@ -91,7 +91,7 @@ export default function TrackView({ view }: ViewProps) {
           <button
             type="button"
             onClick={() => navigate({ name: 'account' })}
-            className="flex cursor-pointer items-center gap-2 text-[11px] font-bold uppercase tracking-[0.22em] text-stone transition-colors hover:text-forest focus-visible:outline-2 focus-visible:outline-gold"
+            className="flex cursor-pointer items-center gap-2 text-[11px] font-bold uppercase tracking-[0.22em] text-stone transition-colors hover:text-forest focus-visible:outline-2 focus-visible:outline-gold print:hidden"
           >
             <ArrowLeft className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden="true" />
             {tt('Your orders', 'ការបញ្ជាទិញរបស់អ្នក')}
@@ -271,7 +271,15 @@ export default function TrackView({ view }: ViewProps) {
         </Reveal>
 
         {/* ── Receipt link ─────────────────────────────────────────────────── */}
-        <div className="mt-12 flex flex-wrap items-center justify-center gap-3">
+        <div className="mt-12 flex flex-wrap items-center justify-center gap-3 print:hidden">
+          <button
+            type="button"
+            className="btn-outline"
+            onClick={() => window.print()}
+          >
+            <Printer className="h-4 w-4" strokeWidth={1.5} aria-hidden="true" />
+            {t('receipt.print')}
+          </button>
           <button
             type="button"
             className="btn-primary"

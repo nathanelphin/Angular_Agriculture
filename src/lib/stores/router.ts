@@ -82,6 +82,8 @@ function hashToView(hash: string): View {
       return { name: 'wishlist' };
     case 'account':
       return { name: 'account' };
+    case 'admin':
+      return { name: 'admin' };
     default:
       return { name: 'home' };
   }

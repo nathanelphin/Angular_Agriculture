@@ -20,6 +20,7 @@ const ConfirmationView = dynamic(() => import('@/components/views/ConfirmationVi
 const TrackView = dynamic(() => import('@/components/views/TrackView'), { ssr: false, loading: () => <ViewSkeleton /> });
 const WishlistView = dynamic(() => import('@/components/views/WishlistView'), { ssr: false, loading: () => <ViewSkeleton /> });
 const AccountView = dynamic(() => import('@/components/views/AccountView'), { ssr: false, loading: () => <ViewSkeleton /> });
+const AdminView = dynamic(() => import('@/components/views/AdminView'), { ssr: false, loading: () => <ViewSkeleton /> });
 
 function renderView(view: ReturnType<typeof useRouterStore.getState>['view']) {
   const props: ViewProps = { view };
@@ -50,6 +51,8 @@ function renderView(view: ReturnType<typeof useRouterStore.getState>['view']) {
       return <WishlistView {...props} />;
     case 'account':
       return <AccountView {...props} />;
+    case 'admin':
+      return <AdminView {...props} />;
     case 'home':
     default:
       return <HomeView {...props} />;

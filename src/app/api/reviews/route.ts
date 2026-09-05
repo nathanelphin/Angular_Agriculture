@@ -110,3 +110,26 @@ export async function POST(request: Request) {
     );
   }
 }
+
+/** DELETE /api/reviews?id=… — moderation removal (storekeeper's desk). */
+export async function DELETE(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const id = searchParams.get('id');
+
+  if (!id) {
+    return NextResponse.json(
+      { ok: false, message: 'Missing review id.' },
+      { status: 400 },
+    );
+  }
+
+  try {
+    const deleted = await db.review.delete({ where: { id } });
+    return NextResponse.json({ ok: true, id: deleted.id });
+  } catch {
+    return NextResponse.json(
+      { ok: false, message: 'Review not found.' },
+      { status: 404 },
+    );
+  }
+}

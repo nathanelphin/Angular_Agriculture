@@ -1,6 +1,6 @@
 'use client';
 
-import { Check } from 'lucide-react';
+import { Check, Printer } from 'lucide-react';
 import type { ViewProps } from '@/lib/types';
 import { useOrdersStore } from '@/lib/stores/orders';
 import { useRouterStore } from '@/lib/stores/router';
@@ -232,7 +232,15 @@ export default function ConfirmationView({ view }: ViewProps) {
           </section>
         </Reveal>
 
-        <div className="mt-14 text-center">
+        <div className="mt-14 flex flex-wrap items-center justify-center gap-3 print:hidden">
+          <button
+            type="button"
+            className="btn-outline"
+            onClick={() => window.print()}
+          >
+            <Printer className="h-4 w-4" strokeWidth={1.5} aria-hidden="true" />
+            {t('receipt.print')}
+          </button>
           <button
             type="button"
             className="btn-primary"

@@ -43,6 +43,8 @@ function baseTitle(view: View): string {
       return `Your Wishlist — ${BRAND}`;
     case 'account':
       return `Your Account — ${BRAND}`;
+    case 'admin':
+      return `Storekeeper's Desk — ${BRAND}`;
     case 'track':
       return `Track Your Order — ${BRAND}`;
   }

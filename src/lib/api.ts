@@ -99,3 +99,39 @@ export async function createReview(input: {
   });
   return res.json();
 }
+
+/** Moderation — remove a community review (storekeeper's desk). */
+export async function deleteReview(id: string): Promise<{ ok: boolean; message?: string }> {
+  const res = await fetch(`/api/reviews?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
+  return res.json();
+}
+
+// ─── Storekeeper's desk (demo back-of-house summary) ─────────────────────────
+
+export interface AdminSummary {
+  stats: {
+    orders: number;
+    revenue: number;
+    giftOrders: number;
+    newsletter: number;
+    reviews: number;
+    avgReview: number;
+  };
+  recentOrders: {
+    id: string;
+    orderNumber: string;
+    customerName: string;
+    province: string;
+    itemsCount: number;
+    total: number;
+    giftWrap: boolean;
+    deliveryMethod: string;
+    paymentMethod: string;
+    createdAt: string;
+  }[];
+  reviews: Omit<CustomerReview, 'verified'>[];
+}
+
+export async function fetchAdminSummary(): Promise<AdminSummary> {
+  return get<AdminSummary>('/api/admin/summary');
+}
