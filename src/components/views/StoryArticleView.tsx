@@ -10,6 +10,8 @@ import { SmartImage } from '@/components/shared/SmartImage';
 import { Reveal } from '@/components/shared/Reveal';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { formatPrice } from '@/components/shared/ProductCard';
+import { ShareButtons } from '@/components/shared/ShareButtons';
+import { useSeo } from '@/lib/useSeo';
 import { cn } from '@/lib/utils';
 
 // ─── Story article — long-form editorial reading view ────────────────────────
@@ -30,6 +32,12 @@ export default function StoryArticleView({ view }: ViewProps) {
   const { data: products } = useQuery({ queryKey: ['products'], queryFn: fetchProducts });
 
   const story = (stories ?? []).find((s) => s.slug === slug);
+
+  // SEO — story title + excerpt once the journal resolves.
+  useSeo(
+    story ? `${story.title} — Sovann Farm Journal` : undefined,
+    story?.excerpt,
+  );
 
   if (isLoading) return <ArticleSkeleton />;
 
@@ -93,6 +101,7 @@ export default function StoryArticleView({ view }: ViewProps) {
               {story.readTime} {t('stories.read')}
             </span>
           </p>
+          <ShareButtons title={title} className="mt-6 justify-center" tone="light" />
         </Reveal>
       </header>
 

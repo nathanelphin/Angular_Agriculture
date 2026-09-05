@@ -1,9 +1,11 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { Check, PenLine, Quote, Star } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { Check, Loader2, PenLine, Quote, Star } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Product } from '@/lib/types';
+import { createReview, fetchReviews, type CustomerReview } from '@/lib/api';
 import { useLang } from '@/lib/stores/lang';
 import { useMounted } from '@/lib/hooks';
 import { RatingStars } from '@/components/shared/RatingStars';
@@ -29,6 +31,8 @@ interface Review {
   bodyKh?: string;
   helpful: number;
   verified: boolean;
+  /** True for real customer submissions persisted in the database. */
+  community?: boolean;
 }
 
 const AUTHORS = [
@@ -142,11 +146,47 @@ function formatDate(iso: string, lang: string): string {
 export function ProductReviews({ product }: { product: Product }) {
   const { t, lang } = useLang();
   const mounted = useMounted();
-  const reviews = useMemo(() => seededReviews(product), [product]);
+  const seeded = useMemo(() => seededReviews(product), [product]);
+
+  // Real customer reviews, persisted in SQLite — shown above the editorial seeds.
+  const { data: persisted, refetch } = useQuery({
+    queryKey: ['reviews', product.id],
+    queryFn: () => fetchReviews(product.id),
+  });
+
+  const [justPosted, setJustPosted] = useState<CustomerReview | null>(null);
+  const liveReviews = useMemo(() => {
+    const rows = [...(persisted ?? [])];
+    if (justPosted && !rows.some((r) => r.id === justPosted.id)) rows.unshift(justPosted);
+    return rows;
+  }, [persisted, justPosted]);
+
+  const reviews = useMemo(() => {
+    const mapped = liveReviews.map((r) => ({
+      id: r.id,
+      author: r.name,
+      authorKh: r.name,
+      location: r.location ?? '',
+      locationKh: r.location ?? '',
+      stars: r.rating,
+      date: r.createdAt.slice(0, 10),
+      title: r.title,
+      titleKh: r.title,
+      body: r.body,
+      bodyKh: r.body,
+      helpful: 0,
+      verified: false,
+      community: true,
+    }));
+    return [...mapped, ...seeded.map((s) => ({ ...s, community: false }))];
+  }, [liveReviews, seeded]);
+
   const bars = useMemo(() => breakdown(reviews, product.rating), [reviews, product.rating]);
   const [helpfulIds, setHelpfulIds] = useState<string[]>([]);
   const [writeOpen, setWriteOpen] = useState(false);
-  const [form, setForm] = useState({ name: '', rating: 5, title: '', body: '' });
+  const [submitting, setSubmitting] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [form, setForm] = useState({ name: '', location: '', rating: 5, title: '', body: '' });
 
   const tt = (en: string, kh: string) => (lang === 'kh' ? kh : en);
 
@@ -154,16 +194,39 @@ export function ProductReviews({ product }: { product: Product }) {
     setHelpfulIds((prev) => (prev.includes(id) ? prev : [...prev, id]));
   };
 
-  const submitReview = (e: React.FormEvent) => {
+  const submitReview = async (e: React.FormEvent) => {
     e.preventDefault();
-    setWriteOpen(false);
-    setForm({ name: '', rating: 5, title: '', body: '' });
-    toast.success(
-      tt(
-        'Thank you — your review is awaiting moderation. (Demo)',
-        'អរគុណ — មតិយោបល់របស់អ្នកកំពុងរង់ចាំការផ្ទៀងផ្ទាត់។ (សាកល្បង)',
-      ),
-    );
+    if (submitting) return;
+    setSubmitting(true);
+    setFormError(null);
+    try {
+      const res = await createReview({
+        productId: product.id,
+        name: form.name.trim(),
+        location: form.location.trim() || undefined,
+        rating: form.rating,
+        title: form.title.trim(),
+        body: form.body.trim(),
+      });
+      if (res.ok && res.review) {
+        setJustPosted(res.review);
+        setWriteOpen(false);
+        setForm({ name: '', location: '', rating: 5, title: '', body: '' });
+        toast.success(
+          tt(
+            'Thank you — your review is now live on this harvest.',
+            'អរគុណ — មតិរបស់អ្នកបានបោះពុម្ពលើផលដំណំនេះហើយ។',
+          ),
+        );
+        void refetch();
+      } else {
+        setFormError(res.message ?? tt('Could not save the review. Please try again.', 'មិនអាចរក្សាទុកមតិបានទេ។ សូមព្យាយាមម្តងទៀត។'));
+      }
+    } catch {
+      setFormError(tt('Could not save the review. Please try again.', 'មិនអាចរក្សាទុកមតិបានទេ។ សូមព្យាយាមម្តងទៀត។'));
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -181,6 +244,12 @@ export function ProductReviews({ product }: { product: Product }) {
                 <RatingStars value={product.rating} size="md" />
                 <p className="mt-1.5 text-[11px] uppercase tracking-[0.2em] text-stone">
                   {product.reviews} {t('product.reviews')}
+                  {liveReviews.length > 0 && (
+                    <span className="text-forest">
+                      {' '}
+                      + {liveReviews.length} {t('reviews.communityCount')}
+                    </span>
+                  )}
                 </p>
               </div>
             </div>
@@ -231,7 +300,12 @@ export function ProductReviews({ product }: { product: Product }) {
                     <div className="flex items-center gap-4">
                       <span
                         aria-hidden="true"
-                        className="flex h-11 w-11 shrink-0 items-center justify-center border border-gold/40 bg-gold/10 font-display text-lg text-forest"
+                        className={cn(
+                          'flex h-11 w-11 shrink-0 items-center justify-center border font-display text-lg',
+                          review.community
+                            ? 'border-forest/30 bg-forest/10 text-forest'
+                            : 'border-gold/40 bg-gold/10 text-forest',
+                        )}
                       >
                         {(lang === 'kh' && review.authorKh ? review.authorKh : review.author).charAt(0)}
                       </span>
@@ -240,12 +314,21 @@ export function ProductReviews({ product }: { product: Product }) {
                           {lang === 'kh' ? review.authorKh : review.author}
                         </p>
                         <p className="mt-0.5 text-[10px] uppercase tracking-[0.2em] text-stone">
-                          {lang === 'kh' ? review.locationKh : review.location} ·{' '}
+                          {(lang === 'kh' ? review.locationKh : review.location) && (
+                            <>
+                              {lang === 'kh' ? review.locationKh : review.location} ·{' '}
+                            </>
+                          )}
                           {formatDate(review.date, lang)}
                         </p>
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
+                      {review.community && (
+                        <span className="border border-forest/30 bg-forest/5 px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.16em] text-forest">
+                          {t('reviews.community')}
+                        </span>
+                      )}
                       {review.verified && (
                         <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.16em] text-moss">
                           <Check className="h-3.5 w-3.5" strokeWidth={2} aria-hidden="true" />
@@ -264,23 +347,30 @@ export function ProductReviews({ product }: { product: Product }) {
                   </p>
 
                   <footer className="mt-5 flex items-center justify-between border-t border-charcoal/8 pt-4">
-                    <button
-                      type="button"
-                      onClick={() => markHelpful(review.id)}
-                      disabled={marked}
-                      aria-pressed={marked}
-                      className={cn(
-                        'text-[10px] font-bold uppercase tracking-[0.2em] transition-colors',
-                        marked
-                          ? 'cursor-default text-moss'
-                          : 'cursor-pointer text-stone hover:text-forest',
-                      )}
-                    >
-                      {marked ? t('reviews.thanks') : t('reviews.helpful')}
-                    </button>
-                    <span className="text-[10px] uppercase tracking-[0.2em] text-stone tabular-nums">
-                      {review.helpful + (marked ? 1 : 0)} {t('reviews.found')}
-                    </span>
+                    {!review.community && (
+                      <button
+                        type="button"
+                        onClick={() => markHelpful(review.id)}
+                        disabled={marked}
+                        aria-pressed={marked}
+                        className={cn(
+                          'text-[10px] font-bold uppercase tracking-[0.2em] transition-colors',
+                          marked
+                            ? 'cursor-default text-moss'
+                            : 'cursor-pointer text-stone hover:text-forest',
+                        )}
+                      >
+                        {marked ? t('reviews.thanks') : t('reviews.helpful')}
+                      </button>
+                    )}
+                    {review.community && (
+                      <span className="text-[10px] italic text-stone">{t('reviews.communityNote')}</span>
+                    )}
+                    {!review.community && (
+                      <span className="text-[10px] uppercase tracking-[0.2em] text-stone tabular-nums">
+                        {review.helpful + (marked ? 1 : 0)} {t('reviews.found')}
+                      </span>
+                    )}
                   </footer>
                 </article>
               </Reveal>
@@ -376,11 +466,38 @@ export function ProductReviews({ product }: { product: Product }) {
               />
             </div>
 
-            <button type="submit" className="btn-primary w-full">
-              <Quote className="h-4 w-4" strokeWidth={1.5} aria-hidden="true" />
+            <div>
+              <label
+                htmlFor="review-location"
+                className="text-[10px] font-bold uppercase tracking-[0.24em] text-stone"
+              >
+                {t('reviews.yourLocation')}
+              </label>
+              <input
+                id="review-location"
+                value={form.location}
+                onChange={(e) => setForm((f) => ({ ...f, location: e.target.value }))}
+                placeholder={tt('Phnom Penh', 'ភ្នំពេញ')}
+                className="input-editorial mt-2"
+                autoComplete="address-level2"
+              />
+            </div>
+
+            {formError && (
+              <p role="alert" className="border border-terracotta/30 bg-terracotta/5 p-3 text-xs text-terracotta">
+                {formError}
+              </p>
+            )}
+
+            <button type="submit" disabled={submitting} className="btn-primary w-full disabled:cursor-not-allowed disabled:opacity-70">
+              {submitting ? (
+                <Loader2 className="h-4 w-4 animate-spin" strokeWidth={2} aria-hidden="true" />
+              ) : (
+                <Quote className="h-4 w-4" strokeWidth={1.5} aria-hidden="true" />
+              )}
               {t('reviews.submit')}
             </button>
-            <p className="text-center text-[11px] italic text-stone">{t('reviews.demoNote')}</p>
+            <p className="text-center text-[11px] italic text-stone">{t('reviews.privacyNote')}</p>
           </form>
         </DialogContent>
       </Dialog>

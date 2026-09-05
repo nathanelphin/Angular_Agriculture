@@ -12,6 +12,7 @@ import { useCartStore } from '@/lib/stores/cart';
 import { useWishlistStore } from '@/lib/stores/wishlist';
 import { useRecentStore } from '@/lib/stores/recent';
 import { useMounted } from '@/lib/hooks';
+import { useSeo } from '@/lib/useSeo';
 import { getCategory } from '@/lib/data/categories';
 import { getProvince, provinceName } from '@/lib/data/provinces';
 import { EmptyState } from '@/components/shared/EmptyState';
@@ -20,6 +21,7 @@ import { QuantityStepper } from '@/components/shared/QuantityStepper';
 import { RatingStars } from '@/components/shared/RatingStars';
 import { Reveal } from '@/components/shared/Reveal';
 import { SectionHeading } from '@/components/shared/SectionHeading';
+import { ShareButtons } from '@/components/shared/ShareButtons';
 import { SmartImage } from '@/components/shared/SmartImage';
 import { OriginChain } from '@/components/product/OriginChain';
 import { ProductReviews } from '@/components/product/ProductReviews';
@@ -119,6 +121,15 @@ export default function ProductView({ view }: ViewProps) {
       .filter((p): p is NonNullable<typeof p> => Boolean(p))
       .slice(0, 4);
   }, [product, allProducts, recentSlugs]);
+
+  // SEO — refines the base title once the product resolves (hook is called
+  // unconditionally to keep the hook order stable across loading states).
+  useSeo(
+    product ? `${product.name} — ${product.farmerName} | Sovann Farm` : undefined,
+    product
+      ? `${product.description} Grown in ${provinceName(product.province)}, Cambodia.`
+      : undefined,
+  );
 
   // ── Loading / not found ─────────────────────────────────────────────────────
   if (product === undefined && !isError) {
@@ -317,6 +328,9 @@ export default function ProductView({ view }: ViewProps) {
               {product.description}
             </p>
 
+            {/* Share this harvest */}
+            <ShareButtons title={name} className="mt-5" tone="light" />
+
             <div className="rule mt-8" />
 
             {/* Size */}
@@ -356,10 +370,17 @@ export default function ProductView({ view }: ViewProps) {
               <div className="mt-3 flex flex-wrap items-center gap-5">
                 <QuantityStepper value={qty} onChange={setQty} max={Math.max(product.stock, 1)} />
                 {product.stock > 0 ? (
-                  <span className="flex items-center gap-2.5 text-xs font-semibold uppercase tracking-[0.18em] text-moss">
-                    <span className="h-1.5 w-1.5 rounded-full bg-moss" aria-hidden="true" />
-                    {t('product.inStock')} ({product.stock})
-                  </span>
+                  product.stock <= 20 ? (
+                    <span className="flex items-center gap-2.5 text-xs font-semibold uppercase tracking-[0.18em] text-terracotta">
+                      <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-terracotta" aria-hidden="true" />
+                      {t('product.lowStock', { n: product.stock })}
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-2.5 text-xs font-semibold uppercase tracking-[0.18em] text-moss">
+                      <span className="h-1.5 w-1.5 rounded-full bg-moss" aria-hidden="true" />
+                      {t('product.inStock')} ({product.stock})
+                    </span>
+                  )
                 ) : (
                   <span className="flex items-center gap-2.5 text-xs font-semibold uppercase tracking-[0.18em] text-terracotta">
                     <span className="h-1.5 w-1.5 rounded-full bg-terracotta" aria-hidden="true" />

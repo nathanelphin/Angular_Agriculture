@@ -28,6 +28,7 @@
   --animate-cart-pulse: cart-pulse 0.6s cubic-bezier(0.22, 1, 0.36, 1);
   --animate-fade-in: fade-in 1s ease both;
   --animate-line-grow: line-grow 1.2s cubic-bezier(0.22, 1, 0.36, 1) both;
+  --animate-heart-pop: heart-pop 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
 
   @keyframes kenburns {
     from {
@@ -62,6 +63,20 @@
     }
     to {
       transform: scaleX(1);
+    }
+  }
+  @keyframes heart-pop {
+    0% {
+      transform: scale(1);
+    }
+    40% {
+      transform: scale(1.45) rotate(-6deg);
+    }
+    70% {
+      transform: scale(0.92);
+    }
+    100% {
+      transform: scale(1);
     }
   }
 }

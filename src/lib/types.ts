@@ -177,6 +177,8 @@ export interface StoredOrder {
   payment: string; // card | aba | acleda | wing | cod
   farmersSupported: number;
   eta: string; // human readable
+  giftWrap?: boolean; // hand-tied kraft wrap + story card
+  giftNote?: string; // handwritten message
 }
 
 export interface DeliveryMethod {

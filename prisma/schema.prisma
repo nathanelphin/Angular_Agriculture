@@ -34,5 +34,22 @@ model Order {
   discount        Float
   total           Float
   farmersSupported Int
+  giftWrap        Boolean @default(false)
+  giftNote        String?
   createdAt       DateTime @default(now())
+}
+
+// Customer reviews persisted from the product page ("Write a Review").
+// Seeded/derived reviews live in the client; these are the real submissions.
+model Review {
+  id        String   @id @default(cuid())
+  productId String // product id, e.g. p-kampot-black-pepper
+  name      String
+  location  String?
+  rating    Int // 1–5
+  title     String
+  body      String
+  createdAt DateTime @default(now())
+
+  @@index([productId, createdAt(sort: Desc)])
 }

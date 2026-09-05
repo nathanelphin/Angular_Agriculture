@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Check, Heart } from 'lucide-react';
 import type { Product } from '@/lib/types';
 import { useLang } from '@/lib/stores/lang';
@@ -29,7 +29,16 @@ export function ProductCard({ product, priority = false, className }: ProductCar
   const wishlisted = useWishlistStore((s) => s.ids.includes(product.id));
   const toggleWishlist = useWishlistStore((s) => s.toggle);
   const [justAdded, setJustAdded] = useState(false);
+  const [heartPop, setHeartPop] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const popTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(
+    () => () => {
+      if (popTimer.current) clearTimeout(popTimer.current);
+    },
+    [],
+  );
 
   const name = lang === 'kh' && product.nameKh ? product.nameKh : product.name;
 
@@ -44,6 +53,11 @@ export function ProductCard({ product, priority = false, className }: ProductCar
   const handleWishlist = (e: React.MouseEvent) => {
     e.stopPropagation();
     toggleWishlist(product.id);
+    // Springy pop on every toggle (event-handler side effect, not an effect).
+    setHeartPop(false);
+    requestAnimationFrame(() => setHeartPop(true));
+    if (popTimer.current) clearTimeout(popTimer.current);
+    popTimer.current = setTimeout(() => setHeartPop(false), 500);
   };
 
   const openProduct = () => navigate({ name: 'product', slug: product.slug });
@@ -107,7 +121,11 @@ export function ProductCard({ product, priority = false, className }: ProductCar
         className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center bg-white/95 text-charcoal shadow-sm transition-all duration-300 hover:scale-110 focus-visible:outline-2 focus-visible:outline-gold"
       >
         <Heart
-          className={cn('h-4 w-4 transition-colors', wishlisted && 'fill-terracotta text-terracotta')}
+          className={cn(
+            'h-4 w-4 transition-colors',
+            wishlisted && 'fill-terracotta text-terracotta',
+            heartPop && 'animate-heart-pop',
+          )}
           strokeWidth={1.5}
         />
       </button>
@@ -127,6 +145,12 @@ export function ProductCard({ product, priority = false, className }: ProductCar
         <div className="mt-2">
           <RatingStars value={product.rating} showValue reviews={product.reviews} reviewsLabel={t('product.reviews')} />
         </div>
+        {product.stock > 0 && product.stock <= 20 && (
+          <p className="mt-2.5 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.16em] text-terracotta">
+            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-terracotta" aria-hidden="true" />
+            {t('product.lowStock', { n: product.stock })}
+          </p>
+        )}
 
         <div className="mt-auto flex items-end justify-between gap-3 pt-5">
           <div className="min-w-0">

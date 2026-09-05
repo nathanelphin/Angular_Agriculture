@@ -2,6 +2,7 @@
 
 import { useEffect, type ReactNode } from 'react';
 import { useRouterStore, applyCurrentHash, registerHashListener, scrollToTop } from '@/lib/stores/router';
+import type { View } from '@/lib/types';
 import { AnnouncementBar } from '@/components/layout/AnnouncementBar';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
@@ -9,6 +10,40 @@ import { SearchOverlay } from '@/components/layout/SearchOverlay';
 import { MobileMenu } from '@/components/layout/MobileMenu';
 import { BackToTop } from '@/components/shared/BackToTop';
 import { Toaster } from '@/components/ui/sonner';
+
+const BRAND = 'Sovann Farm';
+
+/** Sensible SEO base titles per view; product/story views refine after load. */
+function baseTitle(view: View): string {
+  switch (view.name) {
+    case 'home':
+      return `${BRAND} — From Cambodian Soil, To Your Table`;
+    case 'shop':
+      return `Shop the Harvest — ${BRAND}`;
+    case 'product':
+      return `${BRAND}`;
+    case 'farmers':
+      return `Our Farmers — ${BRAND}`;
+    case 'farmer':
+      return `Meet the Farmer — ${BRAND}`;
+    case 'stories':
+      return `Stories from the Soil — ${BRAND}`;
+    case 'story':
+      return `Journal — ${BRAND}`;
+    case 'about':
+      return `Rooted in Cambodia — ${BRAND}`;
+    case 'cart':
+      return `Your Harvest — ${BRAND}`;
+    case 'checkout':
+      return `Secure Checkout — ${BRAND}`;
+    case 'confirmation':
+      return `Order Confirmed — ${BRAND}`;
+    case 'wishlist':
+      return `Your Wishlist — ${BRAND}`;
+    case 'account':
+      return `Your Account — ${BRAND}`;
+  }
+}
 
 /**
  * Global chrome: announcement bar, navbar, page content, footer, overlays.
@@ -36,6 +71,12 @@ export function SiteShell({ children }: { children: ReactNode }) {
       const el = document.getElementById(view.anchor);
       if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
+  }, [view]);
+
+  // Reset the document title for the incoming view; data-driven views
+  // (product / story) refine it once their content resolves.
+  useEffect(() => {
+    document.title = baseTitle(view);
   }, [view]);
 
   return (

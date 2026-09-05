@@ -62,3 +62,40 @@ export async function createOrder(
   });
   return res.json();
 }
+
+// ─── Customer reviews (persisted in SQLite via Prisma) ───────────────────────
+
+export interface CustomerReview {
+  id: string;
+  productId: string;
+  name: string;
+  location?: string;
+  rating: number;
+  title: string;
+  body: string;
+  createdAt: string;
+  verified: boolean;
+}
+
+export async function fetchReviews(productId: string): Promise<CustomerReview[]> {
+  const data = await get<{ reviews: CustomerReview[] }>(
+    `/api/reviews?productId=${encodeURIComponent(productId)}`,
+  );
+  return data.reviews;
+}
+
+export async function createReview(input: {
+  productId: string;
+  name: string;
+  location?: string;
+  rating: number;
+  title: string;
+  body: string;
+}): Promise<{ ok: boolean; review?: CustomerReview; message?: string }> {
+  const res = await fetch('/api/reviews', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+  });
+  return res.json();
+}

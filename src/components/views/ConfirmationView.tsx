@@ -11,6 +11,7 @@ import { EmptyState } from '@/components/shared/EmptyState';
 import { SmartImage } from '@/components/shared/SmartImage';
 import { formatPrice } from '@/components/shared/ProductCard';
 import { OrderTimeline } from '@/components/checkout/OrderTimeline';
+import { GIFT_WRAP_FEE } from '@/components/checkout/totals';
 
 export default function ConfirmationView({ view }: ViewProps) {
   const orderId = view.name === 'confirmation' ? view.orderId : '';
@@ -125,6 +126,28 @@ export default function ConfirmationView({ view }: ViewProps) {
           </div>
         </Reveal>
 
+        {/* ── Gift note ──────────────────────────────────────────────────────── */}
+        {order.giftWrap && (
+          <Reveal delay={260} className="mt-4">
+            <div className="border border-gold/50 bg-gold/5 p-6">
+              <p className="eyebrow text-gold">
+                {tt('Gift wrap included', 'រួមបញ្ចូលការខ្ចប់កាដូ')}
+              </p>
+              {order.giftNote && (
+                <p className="mt-3 font-display text-lg italic leading-relaxed text-charcoal">
+                  &ldquo;{order.giftNote}&rdquo;
+                </p>
+              )}
+              <p className="mt-2 text-xs leading-relaxed text-stone">
+                {tt(
+                  'Your harvest will arrive hand-tied in kraft wrap with a farmer story card.',
+                  'ផលដំណំរបស់អ្នកនឹងមកដល់ជាក្រដាសស្លុងដៃ ជាមួយកាតរឿងកសិករ។',
+                )}
+              </p>
+            </div>
+          </Reveal>
+        )}
+
         {/* ── Items ─────────────────────────────────────────────────────────── */}
         <Reveal delay={280}>
           <section className="mt-12" aria-label={t('confirm.items')}>
@@ -166,6 +189,14 @@ export default function ConfirmationView({ view }: ViewProps) {
                   {order.shipping === 0 ? t('cart.free') : formatPrice(order.shipping)}
                 </span>
               </div>
+              {order.giftWrap && (
+                <div className="flex items-center justify-between">
+                  <span className="text-charcoal">
+                    {tt('Gift wrap', 'ខ្ចប់ជាកាដូ')}
+                  </span>
+                  <span className="tabular-nums text-charcoal">{formatPrice(GIFT_WRAP_FEE)}</span>
+                </div>
+              )}
               {order.discount > 0 && (
                 <div className="flex items-center justify-between text-gold">
                   <span>{tt('Harvest discount −5%', 'បញ្ចុះតម្លៃរដូវចម្ការ −៥%')}</span>

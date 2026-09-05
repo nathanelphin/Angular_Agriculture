@@ -3,6 +3,7 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Heart, X } from 'lucide-react';
+import { toast } from 'sonner';
 import type { ViewProps } from '@/lib/types';
 import { fetchProducts } from '@/lib/api';
 import { useCartStore } from '@/lib/stores/cart';
@@ -29,6 +30,7 @@ export default function CartView({ view }: ViewProps) {
   const items = useCartStore((s) => s.items);
   const setQty = useCartStore((s) => s.setQty);
   const remove = useCartStore((s) => s.remove);
+  const add = useCartStore((s) => s.add);
   const promoCode = useCartStore((s) => s.promoCode);
   const mounted = useMounted();
   const { data: products } = useQuery({ queryKey: ['products'], queryFn: fetchProducts });
@@ -65,6 +67,36 @@ export default function CartView({ view }: ViewProps) {
   const count = items.reduce((acc, i) => acc + i.qty, 0);
   const empty = mounted && items.length === 0;
   const shipProgress = Math.min(100, Math.round((subtotal / FREE_SHIPPING_THRESHOLD) * 100));
+
+  // ── Cross-sell — complementary harvests not already in the basket ────────────
+  const suggestions = useMemo(() => {
+    if (!products || rows.length === 0) return [];
+    const inCart = new Set(items.map((i) => i.productId));
+    const cartProducts = rows.map((r) => r.product!);
+    return products
+      .filter((p) => !inCart.has(p.id))
+      .map((p) => {
+        let score = 0;
+        if (cartProducts.some((c) => c.province === p.province)) score += 3;
+        if (cartProducts.some((c) => c.farmerId && c.farmerId === p.farmerId)) score += 2;
+        if (p.bestseller) score += 2;
+        if (!cartProducts.some((c) => c.category === p.category)) score += 1;
+        return { p, score };
+      })
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 3)
+      .map((s) => s.p);
+  }, [products, items, rows]);
+
+  const addSuggestion = (productId: string) => {
+    const product = products?.find((p) => p.id === productId);
+    add(productId, product?.sizes[0]?.label ?? '', 1);
+    if (product) {
+      toast.success(
+        `${lang === 'kh' && product.nameKh ? product.nameKh : product.name} — ${t('common.added')}`,
+      );
+    }
+  };
 
   return (
     <div className="pb-28">
@@ -340,6 +372,68 @@ export default function CartView({ view }: ViewProps) {
             </Reveal>
           </aside>
         </div>
+      )}
+
+      {/* ── Cross-sell — Complete Your Harvest ─────────────────────────────── */}
+      {suggestions.length > 0 && (
+        <section
+          className="container-editorial mt-16 border-t border-charcoal/10 pt-12"
+          aria-label={t('cart.pairsWith')}
+        >
+          <p className="eyebrow flex items-center gap-3 text-terracotta">
+            <span className="inline-block h-px w-10 bg-current opacity-60" aria-hidden="true" />
+            {t('cart.pairsWith')}
+          </p>
+          <div className="mt-7 grid gap-4 sm:grid-cols-3">
+            {suggestions.map((p, i) => {
+              const pName = lang === 'kh' && p.nameKh ? p.nameKh : p.name;
+              return (
+                <Reveal key={p.id} delay={i * 70} className="h-full">
+                  <div className="flex h-full items-center gap-4 border border-charcoal/10 bg-white p-4">
+                    <button
+                      type="button"
+                      onClick={() => navigate({ name: 'product', slug: p.slug })}
+                      aria-label={pName}
+                      className="shrink-0 cursor-pointer"
+                    >
+                      <SmartImage
+                        src={p.image}
+                        alt={pName}
+                        ratio="square"
+                        className="h-20 w-20"
+                      />
+                    </button>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[9px] font-semibold uppercase tracking-[0.22em] text-stone">
+                        {p.farmerName}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => navigate({ name: 'product', slug: p.slug })}
+                        className="mt-0.5 block w-full cursor-pointer truncate text-left font-display text-base leading-snug text-charcoal transition-colors hover:text-forest"
+                      >
+                        {pName}
+                      </button>
+                      <div className="mt-2 flex items-center justify-between gap-2">
+                        <span className="text-sm font-semibold tabular-nums text-charcoal">
+                          {formatPrice(p.price)}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => addSuggestion(p.id)}
+                          aria-label={`${t('common.addToCart')}: ${pName}`}
+                          className="btn-primary h-8 shrink-0 whitespace-nowrap px-3 text-[9px]"
+                        >
+                          + {t('common.addToCart')}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </Reveal>
+              );
+            })}
+          </div>
+        </section>
       )}
     </div>
   );

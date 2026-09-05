@@ -5,6 +5,7 @@ export const EXPRESS_FEE = 6; // USD
 export const FREE_SHIPPING_THRESHOLD = 35; // USD — standard delivery becomes free
 export const HARVEST_DISCOUNT_THRESHOLD = 100; // USD — order subtotal that unlocks −5%
 export const HARVEST_DISCOUNT_RATE = 0.05;
+export const GIFT_WRAP_FEE = 3; // USD — hand-tied kraft wrap + story card
 
 export type DeliveryId = 'standard' | 'express' | 'pickup';
 export type PaymentId = 'card' | 'aba' | 'acleda' | 'wing' | 'cod';

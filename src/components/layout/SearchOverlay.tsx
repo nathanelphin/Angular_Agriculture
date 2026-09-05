@@ -50,6 +50,25 @@ export function SearchOverlay() {
   const farmers = useQuery({ queryKey: ['farmers'], queryFn: fetchFarmers, enabled: open });
   const stories = useQuery({ queryKey: ['stories'], queryFn: fetchStories, enabled: open });
 
+  // "/" anywhere (outside a form field) opens search — power-user affordance.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      const inField =
+        target &&
+        (target.tagName === 'INPUT' ||
+          target.tagName === 'TEXTAREA' ||
+          target.tagName === 'SELECT' ||
+          target.isContentEditable);
+      if (e.key === '/' && !open && !inField) {
+        e.preventDefault();
+        setSearchOpen(true);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [open, setSearchOpen]);
+
   const q = debounced.trim().toLowerCase();
 
   const results = useMemo(() => {

@@ -41,6 +41,7 @@ import { CheckoutStepper } from '@/components/checkout/CheckoutStepper';
 import { OrderSummary, type OrderSummaryItem } from '@/components/checkout/OrderSummary';
 import {
   etaFor,
+  GIFT_WRAP_FEE,
   harvestDiscountFor,
   shippingFor,
   type DeliveryId,
@@ -140,6 +141,8 @@ export default function CheckoutView({ view }: ViewProps) {
   const [errors, setErrors] = useState<Errors>({});
   const [delivery, setDelivery] = useState<DeliveryId>('standard');
   const [payment, setPayment] = useState<PaymentId>('card');
+  const [giftWrap, setGiftWrap] = useState(false);
+  const [giftNote, setGiftNote] = useState('');
   const [placing, setPlacing] = useState(false);
 
   // Join cart lines with the catalogue for pricing + order snapshot.
@@ -160,6 +163,7 @@ export default function CheckoutView({ view }: ViewProps) {
   const promoOk = Boolean(promo && subtotal >= promo.minSubtotal);
   const shipping = shippingFor(delivery, subtotal, promoOk ? promo : undefined);
   const discount = harvestDiscountFor(subtotal);
+  const giftFee = giftWrap ? GIFT_WRAP_FEE : 0;
   const promoDiscount = promoOk
     ? promo!.kind === 'percent'
       ? Math.round(subtotal * (promo!.value / 100) * 100) / 100
@@ -167,7 +171,7 @@ export default function CheckoutView({ view }: ViewProps) {
         ? promo!.value
         : 0
     : 0;
-  const total = subtotal + shipping - discount - promoDiscount;
+  const total = subtotal + shipping + giftFee - discount - promoDiscount;
 
   const summaryItems: OrderSummaryItem[] = lines.map(({ item, product, unitPrice }) => ({
     key: `${item.productId}-${item.size}`,
@@ -235,6 +239,8 @@ export default function CheckoutView({ view }: ViewProps) {
       promoCode: promoOk ? promo!.code : undefined,
       promoDiscount: promoOk && promoDiscount > 0 ? promoDiscount : undefined,
       total,
+      giftWrap,
+      giftNote: giftWrap && giftNote.trim() ? giftNote.trim() : undefined,
       customer: {
         name: form.name.trim(),
         email: form.email.trim(),
@@ -519,6 +525,61 @@ export default function CheckoutView({ view }: ViewProps) {
                       );
                     })}
                   </div>
+
+                  {/* Gift options */}
+                  <div
+                    className={cn(
+                      'mt-8 border p-5 transition-colors duration-300',
+                      giftWrap ? 'border-gold/60 bg-gold/5' : 'border-charcoal/15',
+                    )}
+                  >
+                    <label className="flex cursor-pointer items-start gap-3.5">
+                      <input
+                        type="checkbox"
+                        checked={giftWrap}
+                        onChange={(e) => setGiftWrap(e.target.checked)}
+                        className="mt-0.5 h-4 w-4 shrink-0 accent-[#1c3a2a]"
+                      />
+                      <span className="min-w-0">
+                        <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                          <span className="text-sm font-bold uppercase tracking-[0.14em] text-charcoal">
+                            {tt('Gift wrap this harvest', 'ខ្ចប់ជាកាដូ')}
+                          </span>
+                          <span className="text-xs font-semibold text-gold">
+                            +{formatPrice(GIFT_WRAP_FEE)}
+                          </span>
+                        </span>
+                        <span className="mt-1 block text-xs leading-relaxed text-stone">
+                          {tt(
+                            'Hand-tied kraft wrap, beeswax seal and a farmer story card — ready to give.',
+                            'ក្រដាសស្លុងដៃ ត្រីមាសស្រាឈេះ និងកាតរឿងកសិករ — ត្រៀមជាកាដូ។',
+                          )}
+                        </span>
+                      </span>
+                    </label>
+                    {giftWrap && (
+                      <div className="mt-4">
+                        <Label htmlFor="gift-note" className="text-xs text-stone">
+                          {tt('Handwritten note (optional)', 'សំបុត្រដោយដៃ (ស្រេចចិត្ត)')}
+                        </Label>
+                        <Textarea
+                          id="gift-note"
+                          rows={2}
+                          maxLength={220}
+                          value={giftNote}
+                          onChange={(e) => setGiftNote(e.target.value)}
+                          placeholder={tt(
+                            'e.g. For Mum — grown by Sokha Chea in Prey Veng.',
+                            'ឧ. សម្រាប់មាតា — ដាំដោយសុខា នៅព្រៃវែង។',
+                          )}
+                          className="input-editorial mt-2 h-20 resize-none py-3 leading-relaxed"
+                        />
+                        <p className="mt-1.5 text-right text-[10px] tabular-nums text-stone">
+                          {giftNote.length}/220
+                        </p>
+                      </div>
+                    )}
+                  </div>
                 </fieldset>
               )}
 
@@ -672,6 +733,7 @@ export default function CheckoutView({ view }: ViewProps) {
               subtotal={subtotal}
               shipping={shipping}
               discount={discount}
+              giftFee={giftFee}
               promoCode={promoOk && promoDiscount > 0 ? promo!.code : undefined}
               promoLabel={promoOk ? (lang === 'kh' ? promo!.labelKh : promo!.labelEn) : undefined}
               promoDiscount={promoOk && promoDiscount > 0 ? promoDiscount : undefined}

@@ -23,6 +23,8 @@ interface OrderPayload {
   payment: string;
   farmersSupported: number;
   eta: string;
+  giftWrap?: boolean;
+  giftNote?: string;
 }
 
 function generateOrderNumber(): string {
@@ -58,6 +60,8 @@ export async function POST(request: Request) {
         discount: payload.discount ?? 0,
         total: payload.total ?? 0,
         farmersSupported: payload.farmersSupported ?? 0,
+        giftWrap: payload.giftWrap ?? false,
+        giftNote: payload.giftNote ?? null,
       },
     });
 
@@ -77,6 +81,8 @@ export async function POST(request: Request) {
       payment: payload.payment,
       farmersSupported: payload.farmersSupported,
       eta: payload.eta,
+      giftWrap: payload.giftWrap,
+      giftNote: payload.giftNote,
     };
 
     return NextResponse.json({ ok: true, order });

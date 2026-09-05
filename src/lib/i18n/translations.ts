@@ -168,6 +168,7 @@ export const translations: Record<Lang, Record<string, string>> = {
     'product.related': 'You May Also Love',
     'product.reviews': 'reviews',
     'product.inStock': 'In stock',
+    'product.lowStock': 'Only {n} left in this harvest',
     'product.shippingValue': '2–5 business days across Cambodia',
     'product.organicValue': 'Organic / Sustainable',
     'product.shop': 'Shop',
@@ -238,6 +239,7 @@ export const translations: Record<Lang, Record<string, string>> = {
     'cart.remove': 'Remove',
     'cart.continue': 'Continue Shopping',
     'cart.items': 'items',
+    'cart.pairsWith': 'Complete Your Harvest',
 
     'checkout.title': 'Checkout',
     'checkout.step.information': 'Information',
@@ -301,6 +303,12 @@ export const translations: Record<Lang, Record<string, string>> = {
 
     'common.backToTop': 'Back to top',
 
+    'share.label': 'Share',
+    'share.native': 'Share this page',
+    'share.copy': 'Copy link',
+    'share.copied': 'Link copied to clipboard.',
+    'share.copyFailed': 'Could not copy — please copy the address manually.',
+
     'track.title': 'The Journey of Your Order',
     'track.confirmed': 'Confirmed',
     'track.packing': 'Packing at the Farm Hub',
@@ -323,6 +331,11 @@ export const translations: Record<Lang, Record<string, string>> = {
     'reviews.thanks': 'Thanks for the feedback',
     'reviews.found': 'found this helpful',
     'reviews.stars': 'stars',
+    'reviews.yourLocation': 'Location (optional)',
+    'reviews.privacyNote': 'Shown with your first name and location only — never your email.',
+    'reviews.community': 'New',
+    'reviews.communityCount': 'from our community',
+    'reviews.communityNote': 'Shared directly by a Sovann Farm customer.',
 
     'product.recentlyViewed': 'Recently Viewed',
 
@@ -493,6 +506,7 @@ export const translations: Record<Lang, Record<string, string>> = {
     'product.related': 'អ្នកក៏អាចចូលចិត្ត',
     'product.reviews': 'មតិយោបល់',
     'product.inStock': 'មានស្តុក',
+    'product.lowStock': 'មានតែ {n} ទៀតប៉ុណ្ណោះ',
     'product.shippingValue': '២–៥ ថ្ងៃធ្វើការ ពាសពេញកម្ពុជា',
     'product.organicValue': 'ធម្មជាតិ / ចីរភាព',
     'product.shop': 'ទិញ',
@@ -562,6 +576,7 @@ export const translations: Record<Lang, Record<string, string>> = {
     'cart.remove': 'ដកចេញ',
     'cart.continue': 'បន្តទិញទំនិញ',
     'cart.items': 'ធាតុ',
+    'cart.pairsWith': 'បំពេញផលដំណំរបស់អ្នក',
 
     'checkout.title': 'ការទូទាត់',
     'checkout.step.information': 'ព័ត៌មាន',
@@ -625,6 +640,12 @@ export const translations: Record<Lang, Record<string, string>> = {
 
     'common.backToTop': 'ឡើងក្រឡេកមកលើ',
 
+    'share.label': 'ចែករំលែក',
+    'share.native': 'ចែករំលែកទំព័រនេះ',
+    'share.copy': 'ចម្លងតំណ',
+    'share.copied': 'តំណបានចម្លងទៅក្តារតម្បៀតខ្ទាស់។',
+    'share.copyFailed': 'មិនអាចចម្លងបានទេ — សូមចម្លងអាសយដ្ឋានដោយខ្លួនឯង។',
+
     'track.title': 'ដំណើរនៃការបញ្ជាទិញរបស់អ្នក',
     'track.confirmed': 'បានបញ្ជាក់',
     'track.packing': 'កំពុងខ្ចប់នៅមជ្ឈមណ្ឌល',
@@ -647,6 +668,11 @@ export const translations: Record<Lang, Record<string, string>> = {
     'reviews.thanks': 'អរគុណសម្រាប់មតិ',
     'reviews.found': 'ឃើញថាមានប្រយោជន៍',
     'reviews.stars': 'ផ្កាយ',
+    'reviews.yourLocation': 'ទីតាំង (ស្រេចចិត្ត)',
+    'reviews.privacyNote': 'បង្ហាញតែឈ្មោះ និងទីតាំងរបស់អ្នកប៉ុណ្ណោះ — មិនបង្ហាញអ៊ីមែលទេ។',
+    'reviews.community': 'ថ្មី',
+    'reviews.communityCount': 'ពីសហគមន៍យើង',
+    'reviews.communityNote': 'ចែករំលែកដោយផ្ទាល់ពីអតិថិជនសូវណ្ណហ្វាម។',
 
     'product.recentlyViewed': 'ទំនិញដែលទើបមើល',
 

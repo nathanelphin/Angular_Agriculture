@@ -21,6 +21,7 @@ interface OrderSummaryProps {
   subtotal: number;
   shipping: number;
   discount: number;
+  giftFee?: number;
   promoCode?: string;
   promoLabel?: string;
   promoDiscount?: number;
@@ -38,6 +39,7 @@ export function OrderSummary({
   subtotal,
   shipping,
   discount,
+  giftFee = 0,
   promoCode,
   promoLabel,
   promoDiscount,
@@ -47,7 +49,7 @@ export function OrderSummary({
   className,
 }: OrderSummaryProps) {
   const { t, lang } = useLang();
-  const total = subtotal + shipping - discount - (promoDiscount ?? 0);
+  const total = subtotal + shipping + giftFee - discount - (promoDiscount ?? 0);
   const discountLabel = lang === 'kh' ? 'បញ្ចុះតម្លៃរដូវចម្ការ −៥%' : 'Harvest discount −5%';
 
   return (
@@ -87,6 +89,14 @@ export function OrderSummary({
             {shipping === 0 ? t('cart.free') : formatPrice(shipping)}
           </dd>
         </div>
+        {giftFee > 0 && (
+          <div className="flex items-center justify-between">
+            <dt className="text-charcoal">
+              {lang === 'kh' ? 'ខ្ចប់ជាកាដូ' : 'Gift wrap'}
+            </dt>
+            <dd className="font-semibold tabular-nums text-charcoal">{formatPrice(giftFee)}</dd>
+          </div>
+        )}
         {discount > 0 && (
           <div className="flex items-center justify-between">
             <dt className="text-gold">{discountLabel}</dt>
