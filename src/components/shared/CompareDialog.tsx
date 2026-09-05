@@ -8,6 +8,7 @@ import { useLang } from '@/lib/stores/lang';
 import { useCartStore } from '@/lib/stores/cart';
 import { useRouterStore } from '@/lib/stores/router';
 import { useCompareStore } from '@/lib/stores/compare';
+import { sizeStock, SIZE_LOW_THRESHOLD } from '@/lib/stock';
 import { provinceName } from '@/lib/data/provinces';
 import { getCategory } from '@/lib/data/categories';
 import { SmartImage } from '@/components/shared/SmartImage';
@@ -119,22 +120,45 @@ export function CompareDialog({ products, open, onOpenChange }: CompareDialogPro
     {
       key: 'stock',
       label: t('compare.row.stock'),
-      render: (p) =>
-        p.stock > 0 ? (
-          p.stock <= 20 ? (
-            <span className="flex items-center gap-1.5 text-terracotta">
-              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-terracotta" aria-hidden="true" />
-              {t('product.lowStock', { n: p.stock })}
+      // Per-size shelf: headline status follows the tightest live size, with a
+      // whisper-line naming the constrained sizes (low or gone).
+      render: (p) => {
+        const stocks = p.sizes.map((s) => ({ label: s.label, n: sizeStock(p, s) }));
+        const live = stocks.filter((s) => s.n > 0);
+        if (live.length === 0) {
+          return <span className="text-terracotta">{t('common.soldOut')}</span>;
+        }
+        const min = Math.min(...live.map((s) => s.n));
+        const lowSizes = stocks.filter((s) => s.n > 0 && s.n <= SIZE_LOW_THRESHOLD);
+        const goneSizes = stocks.filter((s) => s.n <= 0);
+        return (
+          <span>
+            <span className={cn('flex items-center gap-1.5', min <= SIZE_LOW_THRESHOLD ? 'text-terracotta' : 'text-moss')}>
+              <span
+                className={cn(
+                  'h-1.5 w-1.5 rounded-full',
+                  min <= SIZE_LOW_THRESHOLD ? 'animate-pulse bg-terracotta' : 'bg-moss',
+                )}
+                aria-hidden="true"
+              />
+              {min <= SIZE_LOW_THRESHOLD
+                ? t('product.sizeOnly', { n: min })
+                : t('product.inStock')}
             </span>
-          ) : (
-            <span className="flex items-center gap-1.5 text-moss">
-              <span className="h-1.5 w-1.5 rounded-full bg-moss" aria-hidden="true" />
-              {t('product.inStock')}
-            </span>
-          )
-        ) : (
-          <span className="text-terracotta">{t('common.soldOut')}</span>
-        ),
+            {(lowSizes.length > 0 || goneSizes.length > 0) && (
+              <span className="mt-1 block text-[11px] leading-relaxed text-stone">
+                {[...lowSizes, ...goneSizes]
+                  .map((s) =>
+                    s.n <= 0
+                      ? `${s.label} ${t('common.soldOut').toLowerCase()}`
+                      : `${s.label} · ${s.n} ${t('product.sizeLeft')}`,
+                  )
+                  .join(' / ')}
+              </span>
+            )}
+          </span>
+        );
+      },
     },
     {
       key: 'notes',

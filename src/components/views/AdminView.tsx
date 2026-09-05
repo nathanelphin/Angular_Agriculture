@@ -5,6 +5,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import {
   BadgeCheck,
+  Download,
   HeartHandshake,
   Inbox,
   Mail,
@@ -20,6 +21,7 @@ import { deleteReview, fetchAdminSummary, fetchProducts } from '@/lib/api';
 import { useLang } from '@/lib/stores/lang';
 import { useRouterStore } from '@/lib/stores/router';
 import { formatDateShort } from '@/lib/format-date';
+import { orderStageIndex } from '@/components/checkout/OrderTimeline';
 import { Reveal } from '@/components/shared/Reveal';
 import { RatingStars } from '@/components/shared/RatingStars';
 import { formatPrice } from '@/components/shared/ProductCard';
@@ -47,6 +49,62 @@ export default function AdminView({ view }: ViewProps) {
   const stats = summary?.stats;
   const orders = summary?.recentOrders ?? [];
   const reviews = (summary?.reviews ?? []).filter((r) => !removedIds.includes(r.id));
+
+  // ── Fulfilment status (same derived stages the customer track page uses) ──
+  const stageLabel = (stage: number) =>
+    [
+      t('track.confirmed'),
+      t('track.packing'),
+      t('track.transit'),
+      t('track.delivered'),
+    ][stage] ?? t('track.confirmed');
+
+  const exportCsv = () => {
+    const book = summary?.orders ?? [];
+    if (book.length === 0) return;
+    const header = [
+      'Order',
+      'Date',
+      'Customer',
+      'Province',
+      'Items',
+      'Total USD',
+      'Gift Wrap',
+      'Delivery',
+      'Payment',
+      'Status',
+    ];
+    const esc = (value: string | number | boolean) => {
+      const s = String(value);
+      return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+    const rows = book.map((o) =>
+      [
+        o.orderNumber,
+        new Date(o.createdAt).toISOString(),
+        o.customerName,
+        o.province,
+        o.itemsCount,
+        o.total.toFixed(2),
+        o.giftWrap ? 'yes' : 'no',
+        o.deliveryMethod,
+        o.paymentMethod,
+        stageLabel(orderStageIndex(o.createdAt)),
+      ]
+        .map(esc)
+        .join(','),
+    );
+    // BOM keeps Khmer customer names readable in Excel.
+    const csv = `\uFEFF${[header.join(','), ...rows].join('\n')}\n`;
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `sovann-farm-orders-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success(t('admin.exported', { n: book.length }));
+  };
 
   const lowStock = (products ?? [])
     .filter((p) => p.stock <= 20)
@@ -154,9 +212,19 @@ export default function AdminView({ view }: ViewProps) {
                 {t('admin.recentOrders')}
               </h2>
               {orders.length > 0 && (
-                <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-stone">
-                  {orders.length}
-                </span>
+                <div className="flex items-center gap-3">
+                  <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-stone">
+                    {orders.length}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={exportCsv}
+                    className="flex cursor-pointer items-center gap-1.5 border border-charcoal/15 px-2.5 py-1.5 text-[9px] font-bold uppercase tracking-[0.18em] text-stone transition-all duration-300 hover:border-forest hover:text-forest focus-visible:outline-2 focus-visible:outline-gold"
+                  >
+                    <Download className="h-3 w-3" strokeWidth={1.5} aria-hidden="true" />
+                    {t('admin.export')}
+                  </button>
+                </div>
               )}
             </div>
 
@@ -175,43 +243,68 @@ export default function AdminView({ view }: ViewProps) {
                     <tr className="border-b border-charcoal/15 text-[9px] font-bold uppercase tracking-[0.2em] text-stone">
                       <th scope="col" className="py-2.5 pr-3 font-bold">{t('admin.th.order')}</th>
                       <th scope="col" className="hidden py-2.5 pr-3 font-bold sm:table-cell">{t('admin.th.customer')}</th>
+                      <th scope="col" className="hidden py-2.5 pr-3 font-bold md:table-cell">{t('admin.th.status')}</th>
                       <th scope="col" className="py-2.5 pr-3 text-right font-bold">{t('admin.th.items')}</th>
                       <th scope="col" className="py-2.5 text-right font-bold">{t('cart.total')}</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {orders.map((o) => (
-                      <tr
-                        key={o.id}
-                        className="group cursor-pointer border-b border-charcoal/8 transition-colors last:border-0 hover:bg-parchment/50"
-                        onClick={() => navigate({ name: 'track', orderNumber: o.orderNumber })}
-                        title={t('account.trackOrder')}
-                      >
-                        <td className="py-3 pr-3 align-top">
-                          <span className="text-xs font-bold tabular-nums text-forest group-hover:underline group-hover:decoration-gold group-hover:underline-offset-4">
-                            {o.orderNumber}
-                          </span>
-                          <span className="block text-[10px] uppercase tracking-[0.14em] text-stone">
-                            {formatDateShort(o.createdAt, lang)}
-                            {o.giftWrap && (
-                              <span className="ml-1.5 text-gold" title={t('admin.giftWrap')}>◆</span>
-                            )}
-                          </span>
-                        </td>
-                        <td className="hidden py-3 pr-3 align-top text-xs text-charcoal sm:table-cell">
-                          {o.customerName}
-                          <span className="block text-[10px] uppercase tracking-[0.12em] text-stone">
-                            {o.province}
-                          </span>
-                        </td>
-                        <td className="py-3 pr-3 text-right align-top text-xs tabular-nums text-stone">
-                          {o.itemsCount}
-                        </td>
-                        <td className="py-3 text-right align-top text-xs font-semibold tabular-nums text-charcoal">
-                          {formatPrice(o.total)}
-                        </td>
-                      </tr>
-                    ))}
+                    {orders.map((o) => {
+                      const stage = orderStageIndex(o.createdAt);
+                      const delivered = stage === 3;
+                      return (
+                        <tr
+                          key={o.id}
+                          className="group cursor-pointer border-b border-charcoal/8 transition-colors last:border-0 hover:bg-parchment/50"
+                          onClick={() => navigate({ name: 'track', orderNumber: o.orderNumber })}
+                          title={t('account.trackOrder')}
+                        >
+                          <td className="py-3 pr-3 align-top">
+                            <span className="text-xs font-bold tabular-nums text-forest group-hover:underline group-hover:decoration-gold group-hover:underline-offset-4">
+                              {o.orderNumber}
+                            </span>
+                            <span className="block text-[10px] uppercase tracking-[0.14em] text-stone">
+                              {formatDateShort(o.createdAt, lang)}
+                              {o.giftWrap && (
+                                <span className="ml-1.5 text-gold" title={t('admin.giftWrap')}>◆</span>
+                              )}
+                            </span>
+                          </td>
+                          <td className="hidden py-3 pr-3 align-top text-xs text-charcoal sm:table-cell">
+                            {o.customerName}
+                            <span className="block text-[10px] uppercase tracking-[0.12em] text-stone">
+                              {o.province}
+                            </span>
+                          </td>
+                          <td className="hidden py-3 pr-3 align-top md:table-cell">
+                            <span
+                              className={cn(
+                                'inline-flex items-center gap-1.5 border px-2 py-1 text-[8px] font-bold uppercase tracking-[0.16em]',
+                                delivered
+                                  ? 'border-gold/60 bg-gold/10 text-[#8a6d10]'
+                                  : 'border-forest/25 bg-forest/5 text-forest',
+                              )}
+                            >
+                              {delivered ? (
+                                <span className="h-1.5 w-1.5 rounded-full bg-gold" aria-hidden="true" />
+                              ) : (
+                                <span className="relative flex h-1.5 w-1.5" aria-hidden="true">
+                                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-forest opacity-60" />
+                                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-forest" />
+                                </span>
+                              )}
+                              {stageLabel(stage)}
+                            </span>
+                          </td>
+                          <td className="py-3 pr-3 text-right align-top text-xs tabular-nums text-stone">
+                            {o.itemsCount}
+                          </td>
+                          <td className="py-3 text-right align-top text-xs font-semibold tabular-nums text-charcoal">
+                            {formatPrice(o.total)}
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>

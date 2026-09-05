@@ -23,6 +23,7 @@ export type ProvinceId =
 export interface ProductSize {
   label: string; // e.g. "100g", "1kg", "Each"
   price: number; // USD
+  stock?: number; // per-size stock; when omitted it is derived from Product.stock
 }
 
 export interface Product {

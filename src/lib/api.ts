@@ -108,6 +108,19 @@ export async function deleteReview(id: string): Promise<{ ok: boolean; message?:
 
 // ─── Storekeeper's desk (demo back-of-house summary) ─────────────────────────
 
+export interface AdminOrderRow {
+  id: string;
+  orderNumber: string;
+  customerName: string;
+  province: string;
+  itemsCount: number;
+  total: number;
+  giftWrap: boolean;
+  deliveryMethod: string;
+  paymentMethod: string;
+  createdAt: string;
+}
+
 export interface AdminSummary {
   stats: {
     orders: number;
@@ -117,18 +130,9 @@ export interface AdminSummary {
     reviews: number;
     avgReview: number;
   };
-  recentOrders: {
-    id: string;
-    orderNumber: string;
-    customerName: string;
-    province: string;
-    itemsCount: number;
-    total: number;
-    giftWrap: boolean;
-    deliveryMethod: string;
-    paymentMethod: string;
-    createdAt: string;
-  }[];
+  recentOrders: AdminOrderRow[];
+  /** Full order book (same shape) — feeds the CSV export on the desk. */
+  orders: AdminOrderRow[];
   reviews: Omit<CustomerReview, 'verified'>[];
 }
 

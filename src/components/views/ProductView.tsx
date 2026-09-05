@@ -15,6 +15,7 @@ import { useCompareStore } from '@/lib/stores/compare';
 import { useUIStore } from '@/lib/stores/ui';
 import { useMounted } from '@/lib/hooks';
 import { useSeo } from '@/lib/useSeo';
+import { isSizeLow, isSizeSoldOut, sizeStock, SIZE_LOW_THRESHOLD } from '@/lib/stock';
 import { getCategory } from '@/lib/data/categories';
 import { getProvince, provinceName } from '@/lib/data/provinces';
 import { EmptyState } from '@/components/shared/EmptyState';
@@ -208,6 +209,12 @@ export default function ProductView({ view }: ViewProps) {
   const sizeOptions = product.sizes;
   const selectedSizeObj =
     sizeOptions.find((s) => s.label === selectedSize) ?? sizeOptions[0];
+  // Per-size stock: the shelf count for the size actually in hand drives the
+  // quantity ceiling, the stock line and the add guard.
+  const selectedSizeStock = selectedSizeObj
+    ? sizeStock(product, selectedSizeObj)
+    : product.stock;
+  const selectedSizeSoldOut = selectedSizeStock <= 0;
   const activeSrc = gallery[Math.min(activeImage, Math.max(gallery.length - 1, 0))]?.src ?? product.image;
   const activeAlt =
     gallery[Math.min(activeImage, Math.max(gallery.length - 1, 0))]?.alt ?? product.name;
@@ -243,7 +250,10 @@ export default function ProductView({ view }: ViewProps) {
     lang === 'kh' ? (getProvince(id)?.nameKh ?? provinceName(id)) : provinceName(id);
 
   const handleAdd = () => {
-    if (product.stock <= 0) return;
+    if (selectedSizeSoldOut) {
+      toast.error(t('product.sizeUnavailable'));
+      return;
+    }
     add(product.id, selectedSizeObj?.label ?? '', qty);
     setJustAdded(true);
     if (timer.current) clearTimeout(timer.current);
@@ -410,56 +420,83 @@ export default function ProductView({ view }: ViewProps) {
               >
                 {sizeOptions.map((s) => {
                   const active = (selectedSize || sizeOptions[0]?.label) === s.label;
+                  const sStock = sizeStock(product, s);
+                  const soldOut = isSizeSoldOut(product, s);
+                  const low = isSizeLow(product, s);
                   return (
                     <button
                       key={s.label}
                       type="button"
                       role="radio"
                       aria-checked={active}
-                      onClick={() => setSelectedSize(s.label)}
+                      disabled={soldOut}
+                      onClick={() => {
+                        setSelectedSize(s.label);
+                        // Keep the quantity honest when the shelf for this
+                        // size is tighter than what is already staged.
+                        setQty((q) => Math.min(q, Math.max(sizeStock(product, s), 1)));
+                      }}
                       className={cn(
-                        'flex min-h-11 cursor-pointer flex-col items-center justify-center border px-4 py-1.5 transition-all duration-300 focus-visible:outline-2 focus-visible:outline-gold',
-                        active
+                        'relative flex min-h-11 cursor-pointer flex-col items-center justify-center border px-4 py-1.5 transition-all duration-300 focus-visible:outline-2 focus-visible:outline-gold',
+                        soldOut && 'size-soldout cursor-not-allowed text-stone/60',
+                        !soldOut && (active
                           ? 'border-forest bg-forest text-ivory'
-                          : 'border-charcoal/20 text-charcoal hover:border-forest hover:text-forest',
+                          : 'border-charcoal/20 text-charcoal hover:border-forest hover:text-forest'),
                       )}
                     >
-                      <span className="text-sm font-semibold leading-tight">{s.label}</span>
-                      <span
-                        className={cn(
-                          'text-[10px] font-semibold tabular-nums tracking-wide',
-                          active ? 'text-honey' : 'text-stone',
-                        )}
-                      >
-                        {formatPrice(s.price)}
+                      <span className={cn('text-sm font-semibold leading-tight', soldOut && 'line-through decoration-charcoal/40')}>
+                        {s.label}
                       </span>
+                      {soldOut ? (
+                        <span className="text-[9px] font-bold uppercase tracking-[0.14em] text-terracotta/80">
+                          {t('common.soldOut')}
+                        </span>
+                      ) : (
+                        <span
+                          className={cn(
+                            'text-[10px] font-semibold tabular-nums tracking-wide',
+                            active ? 'text-honey' : 'text-stone',
+                          )}
+                        >
+                          {formatPrice(s.price)}
+                          {low && (
+                            <span className={cn('ml-1.5', active ? 'text-honey' : 'text-terracotta')}>
+                              · {sStock} {t('product.sizeLeft')}
+                            </span>
+                          )}
+                        </span>
+                      )}
+                      {low && (
+                        <span
+                          aria-hidden="true"
+                          className="absolute right-1.5 top-1.5 h-1 w-1 animate-pulse rounded-full bg-terracotta"
+                        />
+                      )}
                     </button>
                   );
                 })}
               </div>
             </div>
 
-            {/* Quantity + stock */}
+            {/* Quantity + stock — reflects the selected size's shelf */}
             <div className="mt-8">
               <p className="eyebrow text-stone">{t('product.quantity')}</p>
               <div className="mt-3 flex flex-wrap items-center gap-5">
-                <QuantityStepper value={qty} onChange={setQty} max={Math.max(product.stock, 1)} />
-                {product.stock > 0 ? (
-                  product.stock <= 20 ? (
-                    <span className="flex items-center gap-2.5 text-xs font-semibold uppercase tracking-[0.18em] text-terracotta">
-                      <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-terracotta" aria-hidden="true" />
-                      {t('product.lowStock', { n: product.stock })}
-                    </span>
-                  ) : (
-                    <span className="flex items-center gap-2.5 text-xs font-semibold uppercase tracking-[0.18em] text-moss">
-                      <span className="h-1.5 w-1.5 rounded-full bg-moss" aria-hidden="true" />
-                      {t('product.inStock')} ({product.stock})
-                    </span>
-                  )
-                ) : (
+                <QuantityStepper value={qty} onChange={setQty} max={Math.max(selectedSizeStock, 1)} />
+                {selectedSizeSoldOut ? (
                   <span className="flex items-center gap-2.5 text-xs font-semibold uppercase tracking-[0.18em] text-terracotta">
                     <span className="h-1.5 w-1.5 rounded-full bg-terracotta" aria-hidden="true" />
-                    {t('common.soldOut')}
+                    {t('product.sizeUnavailable')}
+                  </span>
+                ) : selectedSizeStock <= SIZE_LOW_THRESHOLD ? (
+                  <span className="flex items-center gap-2.5 text-xs font-semibold uppercase tracking-[0.18em] text-terracotta">
+                    <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-terracotta" aria-hidden="true" />
+                    {t('product.sizeOnly', { n: selectedSizeStock })}
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-2.5 text-xs font-semibold uppercase tracking-[0.18em] text-moss">
+                    <span className="h-1.5 w-1.5 rounded-full bg-moss" aria-hidden="true" />
+                    {t('product.inStock')}
                   </span>
                 )}
               </div>
@@ -470,7 +507,7 @@ export default function ProductView({ view }: ViewProps) {
               <button
                 type="button"
                 onClick={handleAdd}
-                disabled={product.stock <= 0}
+                disabled={selectedSizeSoldOut}
                 className={cn(
                   'btn-primary h-14 w-full text-xs disabled:cursor-not-allowed disabled:opacity-40',
                   justAdded && 'bg-gold text-forest-deep',
@@ -633,7 +670,7 @@ export default function ProductView({ view }: ViewProps) {
             <button
               type="button"
               onClick={handleAdd}
-              disabled={product.stock <= 0}
+              disabled={selectedSizeSoldOut}
               className={cn(
                 'btn-primary h-12 shrink-0 px-5 text-[10px] disabled:cursor-not-allowed disabled:opacity-40',
                 justAdded && 'bg-gold text-forest-deep',

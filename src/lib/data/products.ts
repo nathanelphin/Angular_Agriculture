@@ -15,10 +15,10 @@ export const products: Product[] = [
     farmerName: 'Dara Touch',
     price: 12,
     sizes: [
-      { label: '100g', price: 12 },
-      { label: '250g', price: 26 },
-      { label: '500g', price: 48 },
-      { label: '1kg', price: 90 },
+      { label: '100g', price: 12, stock: 24 },
+      { label: '250g', price: 26, stock: 16 },
+      { label: '500g', price: 48, stock: 9 },
+      { label: '1kg', price: 90, stock: 6 }, // the vintage kilo tins are nearly spoken for
     ],
     unit: '100g tin',
     rating: 4.9,
@@ -46,8 +46,8 @@ export const products: Product[] = [
     farmerName: 'Dara Touch',
     price: 14,
     sizes: [
-      { label: '100g', price: 14 },
-      { label: '250g', price: 30 },
+      { label: '100g', price: 14, stock: 18 },
+      { label: '250g', price: 30, stock: 10 },
     ],
     unit: '100g tin',
     rating: 4.8,
@@ -396,7 +396,7 @@ export const products: Product[] = [
     farmerId: null,
     farmerName: 'Sovann Farm Collective',
     price: 64,
-    sizes: [{ label: 'Each', price: 64 }],
+    sizes: [{ label: 'Each', price: 64, stock: 5 }], // hand-tied boxes, packed weekly
     unit: 'gift box',
     rating: 4.9,
     reviews: 38,

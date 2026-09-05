@@ -10,6 +10,7 @@ import { useCartStore } from '@/lib/stores/cart';
 import { useRouterStore } from '@/lib/stores/router';
 import { provinceName } from '@/lib/data/provinces';
 import { getCategory } from '@/lib/data/categories';
+import { isSizeLow, isSizeSoldOut, sizeStock } from '@/lib/stock';
 import { SmartImage } from '@/components/shared/SmartImage';
 import { RatingStars } from '@/components/shared/RatingStars';
 import { QuantityStepper } from '@/components/shared/QuantityStepper';
@@ -47,8 +48,14 @@ export function QuickViewDialog({ product, open, onOpenChange }: QuickViewDialog
   const name = lang === 'kh' && product.nameKh ? product.nameKh : product.name;
   const selected = sizes.find((s) => s.label === size) ?? sizes[0];
   const categoryName = getCategory(product.category)?.name ?? '';
+  const selectedStock = selected ? sizeStock(product, selected) : product.stock;
+  const selectedSoldOut = selectedStock <= 0;
 
   const handleAdd = () => {
+    if (selectedSoldOut) {
+      toast.error(t('product.sizeUnavailable'));
+      return;
+    }
     add(product.id, selected?.label ?? '', qty);
     setJustAdded(true);
     if (timer.current) clearTimeout(timer.current);
@@ -142,33 +149,54 @@ export function QuickViewDialog({ product, open, onOpenChange }: QuickViewDialog
               <div>
                 <p className="eyebrow text-stone">{t('product.size')}</p>
                 <div className="mt-3 flex flex-wrap gap-2" role="radiogroup" aria-label={t('product.size')}>
-                  {sizes.map((s) => (
-                    <button
-                      key={s.label}
-                      type="button"
-                      onClick={() => setSize(s.label)}
-                      aria-pressed={size === s.label}
-                      className={cn(
-                        'h-10 cursor-pointer border px-4 text-xs font-semibold transition-colors duration-300',
-                        size === s.label
-                          ? 'border-forest bg-forest text-ivory'
-                          : 'border-charcoal/20 text-charcoal hover:border-forest',
-                      )}
-                    >
-                      {s.label}
-                    </button>
-                  ))}
+                  {sizes.map((s) => {
+                    const soldOut = isSizeSoldOut(product, s);
+                    const low = isSizeLow(product, s);
+                    return (
+                      <button
+                        key={s.label}
+                        type="button"
+                        role="radio"
+                        aria-checked={size === s.label}
+                        disabled={soldOut}
+                        onClick={() => {
+                          setSize(s.label);
+                          setQty((q) => Math.min(q, Math.max(sizeStock(product, s), 1)));
+                        }}
+                        className={cn(
+                          'relative flex h-10 cursor-pointer items-center border px-4 text-xs font-semibold transition-colors duration-300',
+                          soldOut && 'size-soldout cursor-not-allowed text-stone/60 line-through decoration-charcoal/40',
+                          !soldOut && (size === s.label
+                            ? 'border-forest bg-forest text-ivory'
+                            : 'border-charcoal/20 text-charcoal hover:border-forest'),
+                        )}
+                      >
+                        {s.label}
+                        {low && !soldOut && (
+                          <span
+                            aria-hidden="true"
+                            className={cn(
+                              'ml-1.5 text-[9px] font-bold tabular-nums',
+                              size === s.label ? 'text-honey' : 'text-terracotta',
+                            )}
+                          >
+                            {sizeStock(product, s)} {t('product.sizeLeft')}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             )}
 
-            {/* Qty + add */}
+            {/* Qty + add — ceiling follows the selected size's shelf */}
             <div className="mt-5 flex items-center gap-3">
-              <QuantityStepper value={qty} onChange={setQty} min={1} max={Math.max(product.stock, 1)} />
+              <QuantityStepper value={qty} onChange={setQty} min={1} max={Math.max(selectedStock, 1)} />
               <button
                 type="button"
                 onClick={handleAdd}
-                disabled={product.stock <= 0}
+                disabled={selectedSoldOut}
                 className={cn(
                   'btn-primary h-12 flex-1 text-[10px]',
                   justAdded && '!bg-gold !text-forest-deep',

@@ -76,6 +76,30 @@ export async function GET() {
         avgReview: Math.round(avgReview * 10) / 10,
       },
       recentOrders,
+      // Full order book (up to 20) — feeds the CSV export on the desk.
+      orders: orders.map((o) => {
+        const row = recentOrders.find((r) => r.id === o.id);
+        if (row) return row;
+        let itemsCount = 0;
+        try {
+          const parsed = JSON.parse(o.items) as { qty: number }[];
+          itemsCount = parsed.reduce((n, item) => n + (item.qty ?? 1), 0);
+        } catch {
+          itemsCount = 0;
+        }
+        return {
+          id: o.id,
+          orderNumber: o.orderNumber,
+          customerName: o.customerName,
+          province: o.province,
+          itemsCount,
+          total: o.total,
+          giftWrap: o.giftWrap,
+          deliveryMethod: o.deliveryMethod,
+          paymentMethod: o.paymentMethod,
+          createdAt: o.createdAt.toISOString(),
+        } satisfies AdminOrderRow;
+      }),
       reviews,
     });
   } catch (e) {
@@ -84,6 +108,7 @@ export async function GET() {
       {
         stats: { orders: 0, revenue: 0, giftOrders: 0, newsletter: 0, reviews: 0, avgReview: 0 },
         recentOrders: [],
+        orders: [],
         reviews: [],
       },
       { status: 500 },

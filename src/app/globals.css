@@ -302,6 +302,15 @@
   .stat-card:hover::after {
     transform: scaleX(1);
   }
+
+  /* Sold-out size chip — quiet diagonal hatch, the shelf is empty */
+  .size-soldout {
+    background-image: repeating-linear-gradient(
+      -45deg,
+      transparent 0 4px,
+      rgba(38, 34, 28, 0.045) 4px 6px
+    );
+  }
 }
 
 /* ─── Print — clean paper receipt (order tracking & confirmation) ────────────── */

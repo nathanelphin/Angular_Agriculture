@@ -345,3 +345,34 @@ Stage Summary:
 - SOVANN FARM v1.5: the shop gained a back of house — a storekeeper's desk where orders, revenue, subscribers, low stock and community reviews can actually be managed (real SQLite reads + real delete); wishlists now flow straight into comparison; and order receipts print like paper invoices. Announcement strip, vitals cards and admin tables extend the editorial design language.
 - Known notes: the admin desk is a demo surface (no auth) reachable via the discreet footer link — intentional for the prototype; DELETE is unauthenticated by design; moderation list caps at 50 rows (API take: 50); the compare tray still persists across sessions by design.
 - Ideas for next cycle: per-size stock in data model + compare dialog, order-status chip on admin rows (reuse orderStageIndex), export orders CSV from the desk, KH native proofread pass, admin auth gate (simple passphrase) if the desk graduates beyond demo.
+
+---
+Task ID: 11 (Feature Round 7 — Harvest Intelligence: Per-Size Stock + Desk Ops, v1.6)
+Agent: Z.ai Code (main)
+Task: Assess status via agent-browser QA, then deepen styling details and add new commerce features (v1.6)
+
+Work Log:
+- STATUS ASSESSMENT: read worklog (v1.5 handoff), dev server alive (GET / 200). agent-browser sweep across home/shop/product/admin/cart, desktop 1440 + mobile 390: all healthy; console showed stale "Module not found: AdminView" errors from an old hot-reload cycle — a fresh reload confirmed 0 real errors (stale console buffer, not reproducible). → declared STABLE, proceeded to feature work drawn from the worklog's own "ideas for next cycle" (per-size stock, admin status chips, CSV export).
+
+FEATURES (mandatory #2):
+- PER-SIZE STOCK ("the shelf talks"): new `stock?: number` on ProductSize (types.ts) + new src/lib/stock.ts helpers — `sizeStock` (explicit value wins; otherwise product-level stock is distributed across sizes with a decreasing weight curve [1, .62, .38, .22, .14] so smaller sizes hold more units), `isSizeSoldOut`, `isSizeLow` (threshold 8), `tightestSizeStock`. Explicit storytelling values on flagship data: Kampot Black Pepper 100g=24/250g=16/500g=9/1kg=6 (the vintage kilo tins are "nearly spoken for"), White Pepper 18/10, Golden Harvest Gift Box Each=5. Every other product derives per-size numbers automatically — no data churn.
+  * ProductView size chips: low sizes (≤8) whisper "· 6 left" (terracotta idle / honey when active) with a tiny pulse dot in the chip corner; sold-out sizes get the new `.size-soldout` diagonal-hatch treatment, strikethrough label, disabled state + "SOLD OUT" microline. Selecting a size clamps the staged quantity to that shelf (setQty min), the quantity stepper ceiling now follows the selected size, the stock line reads per-size ("ONLY 6 LEFT IN THIS SIZE" / in-stock moss dot / "this size is spoken for"), and ADD TO CART + the mobile sticky bar disable per selected size with a bilingual toast guard.
+  * QuickViewDialog: same per-size chips (count inline when low, hatch + strikethrough when gone), same qty clamp + add guard.
+  * CompareDialog Availability row: headline status follows the tightest live size ("Only 6 left in this size" + pulse / "In stock" / "Sold out") with a whisper-line naming constrained sizes ("500g · 7 left / 1kg sold out").
+- ADMIN ORDER-STATUS CHIPS: Recent Orders table gains a Status column (md+ screens) — chip reuses the customer-facing derived stages (orderStageIndex): live orders get a forest ping-dot chip ("CONFIRMED"…), delivered get a gold chip; verified with a fresh API-placed order (SF-2026-06014 showed CONFIRMED while older orders showed DELIVERED). CSV Status column uses the same derived labels (localized).
+- ORDERS CSV EXPORT: "EXPORT CSV" button (Download icon) in the Recent Orders header → client-side CSV of the full order book (10 columns: Order/Date/Customer/Province/Items/Total/GiftWrap/Delivery/Payment/Status; proper quote escaping, UTF-8 BOM so Khmer names survive Excel, filename sovann-farm-orders-YYYY-MM-DD.csv) + bilingual toast "n orders exported as CSV". API: /api/admin/summary now returns the full `orders` list alongside the sliced recentOrders (AdminOrderRow extracted + typed in api.ts).
+- i18n: 6 new keys EN+KH (product.sizeLeft, product.sizeOnly, product.sizeUnavailable, admin.th.status, admin.export, admin.exported). Khmer verified in-browser: size chips "6 នៅសល់", stock line, admin table headers + status chips (ការបញ្ជាទិញ / ចំណាយផ្គត់ផ្គង់), export button នាំចេញ CSV.
+
+STYLING DETAILS (mandatory #1):
+- `.size-soldout` hatch utility (repeating-linear-gradient hairlines) — a quiet editorial "empty shelf" pattern reused by ProductView + QuickView.
+- Status-chip design language consistent with the desk: 8px uppercase tracked labels, hairline borders, forest ping vs gold static dot.
+- Size chips keep tabular figures; low-stock whisper keeps the two-line chip rhythm (label / price · n left) so the row never jumps.
+
+BUGS FOUND & FIXED: none new this round (the stale AdminView console error was pre-existing hot-reload noise, not reproducible on fresh load). Test order placed via API was deleted from SQLite at handoff (6 orders / $344 restored).
+
+Verification: `bunx tsc --noEmit` → 0 errors in src/; `bun run lint` clean; curl /api/admin/summary shows recentOrders + full orders list; agent-browser rounds desktop 1440 + mobile 390 in EN + KH: size chip low/soldout states, 1kg selection → price/stock-line/qty-clamp update, compare availability row, admin live CONFIRMED chip + gold DELIVERED chips, CSV download captured on disk (header + 7 rows verified incl. derived statuses), KH admin + KH product, mobile chip wrap — all green; console 0 errors; demo state reset at handoff (lang EN, compare cleared, test order deleted).
+
+Stage Summary:
+- SOVANN FARM v1.6: stock is now a per-size story — shoppers see which tins are scarce before they commit, can't over-order a size that isn't there, and sold-out sizes wear a quiet hatch instead of an error; the Storekeeper's Desk reads order status at a glance and ships the whole order book to CSV in one click.
+- Known notes: derived per-size stock is deterministic but fictional (demo data); first-size sold-out edge case is not guarded on card quick-adds (no dataset exercises it — derivation only yields 0 when a product is fully sold out, which cards already disable); CSV export is client-side from the summary payload (caps at the API's take:20).
+- Ideas for next cycle: order rows on the desk could carry a mini stage progress (4 dots) instead of a text chip; per-size stock could feed back into the cart line items (warn when qty exceeds shelf at checkout time); simple passphrase gate for the desk if it graduates beyond demo; KH native proofread pass on all new strings.
